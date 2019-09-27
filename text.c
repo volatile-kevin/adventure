@@ -8,18 +8,18 @@
  * documentation for any purpose, without fee, and without written agreement is
  * hereby granted, provided that the above copyright notice and the following
  * two paragraphs appear in all copies of this software.
- * 
- * IN NO EVENT SHALL THE AUTHOR OR THE UNIVERSITY OF ILLINOIS BE LIABLE TO 
- * ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL 
- * DAMAGES ARISING OUT  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, 
- * EVEN IF THE AUTHOR AND/OR THE UNIVERSITY OF ILLINOIS HAS BEEN ADVISED 
+ *
+ * IN NO EVENT SHALL THE AUTHOR OR THE UNIVERSITY OF ILLINOIS BE LIABLE TO
+ * ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
+ * DAMAGES ARISING OUT  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION,
+ * EVEN IF THE AUTHOR AND/OR THE UNIVERSITY OF ILLINOIS HAS BEEN ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
- * THE AUTHOR AND THE UNIVERSITY OF ILLINOIS SPECIFICALLY DISCLAIM ANY 
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE 
+ *
+ * THE AUTHOR AND THE UNIVERSITY OF ILLINOIS SPECIFICALLY DISCLAIM ANY
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE
  * PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND NEITHER THE AUTHOR NOR
- * THE UNIVERSITY OF ILLINOIS HAS ANY OBLIGATION TO PROVIDE MAINTENANCE, 
+ * THE UNIVERSITY OF ILLINOIS HAS ANY OBLIGATION TO PROVIDE MAINTENANCE,
  * SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
  *
  * Author:	    Steve Lumetta
@@ -36,9 +36,67 @@
 #include <string.h>
 
 #include "text.h"
+static unsigned char colorBuf[5760];
 
+void get_letter(unsigned char * input){
+  int i, j, k;
+  int length = strlen((char*)input);
+  // make all of the status bar 0
+  for(i = 0; i < 5760; i++){
+    colorBuf[i] = 0;
+  }
+  for(i = 0; i < 16; i++){
+    for(j = 0; j < length; j++){
+      unsigned char fontIndex = input[j];
+      for(k = 0; k < 8; k++){
+        int whichplane = k % 4;
+        int whichplaneIndex = 3-whichplane;
+        int k_offset = k/4;
+        if(whichplane == 0){
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+        }
+        if(whichplane == 1){
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+        }
+        if(whichplane == 2){
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+        }
+        if(whichplane == 3){
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+        }
+      }
+    }
+  }
+}
 
-/* 
+// for(j = 0; j < 16; j++){
+//   int k;
+//   for(k = 0; k < 8; k++){
+//       colorBuf[128*i + j + k] = (128 && (font_data[fontIndex][j] << k)) / 128;
+//     }
+//   }
+
+// for(i = 0; i < length; i++){
+//   int fontIndex = (int)input[i];
+//   int j;
+// }
+
+unsigned char * statusBar_color(){
+  int i;
+
+  get_letter((unsigned char *)"fucking shit poo poo garbage");
+  for(i = 0; i < 5760; i++){
+    if(colorBuf[i] == 1){
+      colorBuf[i] = 0;
+    }
+    else {
+      colorBuf[i] = 63;
+    }
+  }
+  return colorBuf;
+}
+
+/*
  * These font data were read out of video memory during text mode and
  * saved here.  They could be read in the same manner at the start of a
  * game, but keeping a copy allows us to run the game to fix text mode
@@ -561,4 +619,3 @@ unsigned char font_data[256][16] = {
     {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
 };
-

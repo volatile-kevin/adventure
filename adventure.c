@@ -8,18 +8,18 @@
  * documentation for any purpose, without fee, and without written agreement is
  * hereby granted, provided that the above copyright notice and the following
  * two paragraphs appear in all copies of this software.
- * 
- * IN NO EVENT SHALL THE AUTHOR OR THE UNIVERSITY OF ILLINOIS BE LIABLE TO 
- * ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL 
- * DAMAGES ARISING OUT  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, 
- * EVEN IF THE AUTHOR AND/OR THE UNIVERSITY OF ILLINOIS HAS BEEN ADVISED 
+ *
+ * IN NO EVENT SHALL THE AUTHOR OR THE UNIVERSITY OF ILLINOIS BE LIABLE TO
+ * ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
+ * DAMAGES ARISING OUT  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION,
+ * EVEN IF THE AUTHOR AND/OR THE UNIVERSITY OF ILLINOIS HAS BEEN ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
- * THE AUTHOR AND THE UNIVERSITY OF ILLINOIS SPECIFICALLY DISCLAIM ANY 
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE 
+ *
+ * THE AUTHOR AND THE UNIVERSITY OF ILLINOIS SPECIFICALLY DISCLAIM ANY
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE
  * PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND NEITHER THE AUTHOR NOR
- * THE UNIVERSITY OF ILLINOIS HAS ANY OBLIGATION TO PROVIDE MAINTENANCE, 
+ * THE UNIVERSITY OF ILLINOIS HAS ANY OBLIGATION TO PROVIDE MAINTENANCE,
  * SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
  *
  * Author:	    Steve Lumetta
@@ -79,9 +79,9 @@ typedef struct {
 } game_info_t;
 
 
-/* 
- * enumerated values, structure, and static data used for parsing typed 
- * commands 
+/*
+ * enumerated values, structure, and static data used for parsing typed
+ * commands
  *
  * Note that the structure allows us to abbreviate commands and to create
  * synonyms for verbs (e.g., get and grab).
@@ -151,9 +151,9 @@ static int time_is_after (struct timeval* t1, struct timeval* t2);
 static game_info_t game_info; /* game information */
 
 
-/* 
+/*
  * The variables below are used to keep track of the status message helper
- * thread, with Posix thread id recorded in status_thread_id.  
+ * thread, with Posix thread id recorded in status_thread_id.
  *
  * The status_msg records the current status message: when the
  * string recorded there is empty, no status message need be displayed, and
@@ -162,7 +162,7 @@ static game_info_t game_info; /* game information */
  *
  * The status_msg is protected by the msg_lock mutex, which should be
  * acquired before reading or writing the message.  Further, if the message
- * is changed, the helper thread must be notified by signaling it with the 
+ * is changed, the helper thread must be notified by signaling it with the
  * condition variable msg_cv (while holding the msg_lock).
  */
 static pthread_t status_thread_id;
@@ -171,7 +171,7 @@ static pthread_cond_t  msg_cv = PTHREAD_COND_INITIALIZER;
 static char status_msg[STATUS_MSG_LEN + 1] = {'\0'};
 
 
-/* 
+/*
  * cancel_status_thread
  *   DESCRIPTION: Terminates the status message helper thread.  Used as
  *                a cleanup method to ensure proper shutdown.
@@ -187,7 +187,7 @@ cancel_status_thread (void* ignore)
 }
 
 
-/* 
+/*
  * game_loop
  *   DESCRIPTION: Main event loop for the adventure game.
  *   INPUTS: none
@@ -198,7 +198,7 @@ cancel_status_thread (void* ignore)
 static game_condition_t
 game_loop ()
 {
-    /* 
+    /*
      * Variables used to carry information between event loop ticks; see
      * initialization below for explanations of purpose.
      */
@@ -223,7 +223,7 @@ game_loop ()
 
     /* The main event loop. */
     while (1) {
-	/* 
+	/*
 	 * Update the screen, preparing the VGA palette and photo-drawing
 	 * routines and drawing a new room photo first if the player has
 	 * entered a new room, then showing the screen (and status bar,
@@ -236,7 +236,7 @@ game_loop ()
 
 	    /* Discard any partially-typed command. */
 	    reset_typed_command ();
-	    
+
 	    /* Adjust colors and photo drawing for the current room photo. */
 	    prep_room (game_info.where);
 
@@ -248,7 +248,7 @@ game_loop ()
 	}
 
 	show_screen ();
-
+  show_statusBar ();
 	/*
 	 * Wait for tick.  The tick defines the basic timing of our
 	 * event loop, and is the minimum amount of time between events.
@@ -264,8 +264,8 @@ game_loop ()
 	} while (!time_is_after (&cur_time, &tick_time));
 
 	/*
-	 * Advance the tick time.  If we missed one or more ticks completely, 
-	 * i.e., if the current time is already after the time for the next 
+	 * Advance the tick time.  If we missed one or more ticks completely,
+	 * i.e., if the current time is already after the time for the next
 	 * tick, just skip the extra ticks and advance the clock to the one
 	 * that we haven't missed.
 	 */
@@ -283,20 +283,20 @@ game_loop ()
 	 */
 	/* (none right now...) */
 
-	/* 
-	 * Handle synchronous events--in this case, only player commands. 
+	/*
+	 * Handle synchronous events--in this case, only player commands.
 	 * Note that typed commands that move objects may cause the room
 	 * to be redrawn.
 	 */
-	
+
 	cmd = get_command ();
 	switch (cmd) {
 	    case CMD_UP:    move_photo_down ();  break;
 	    case CMD_RIGHT: move_photo_left ();  break;
 	    case CMD_DOWN:  move_photo_up ();    break;
 	    case CMD_LEFT:  move_photo_right (); break;
-	    case CMD_MOVE_LEFT:   
-		enter_room = (TC_CHANGE_ROOM == 
+	    case CMD_MOVE_LEFT:
+		enter_room = (TC_CHANGE_ROOM ==
 			      try_to_move_left (&game_info.where));
 		break;
 	    case CMD_ENTER:
@@ -304,7 +304,7 @@ game_loop ()
 			      try_to_enter (&game_info.where));
 		break;
 	    case CMD_MOVE_RIGHT:
-		enter_room = (TC_CHANGE_ROOM == 
+		enter_room = (TC_CHANGE_ROOM ==
 			      try_to_move_right (&game_info.where));
 		break;
 	    case CMD_TYPED:
@@ -324,7 +324,7 @@ game_loop ()
 }
 
 
-/* 
+/*
  * handle_typing
  *   DESCRIPTION: Parse and execute a typed command.
  *   INPUTS: none (reads typed command)
@@ -346,7 +346,7 @@ handle_typing ()
     while (' ' == *cmd) { cmd++; }
     if ('\0' == *cmd) { return 0; }
 
-    /* 
+    /*
      * Walk over the command verb, calculating its length as we go.  Space
      * or NUL marks the end of the verb, after which the argument begins.
      * Leading spaces are first stripped from the argument, but we make no
@@ -440,14 +440,14 @@ handle_typing ()
 	}
 	return 0;
     }
-    
+
     /* The command was not recognized. */
     show_status ("What are you babbling about?");
     return 0;
 }
 
 
-/* 
+/*
  * init_game
  *   DESCRIPTION: Initialize the game information, including the initial
  *                room, photo display, motion speed, and so forth.
@@ -467,7 +467,7 @@ init_game ()
 }
 
 
-/* 
+/*
  * move_photo_down
  *   DESCRIPTION: Move background photo down one or more pixels.  Amount of
  *                motion depends on game_info.y_speed.  Movement stops at
@@ -498,7 +498,7 @@ move_photo_down ()
 }
 
 
-/* 
+/*
  * move_photo_left
  *   DESCRIPTION: Move background photo left one or more pixels.  Amount of
  *                motion depends on game_info.x_speed.  Movement stops at
@@ -530,7 +530,7 @@ move_photo_left ()
 }
 
 
-/* 
+/*
  * move_photo_right
  *   DESCRIPTION: Move background photo right one or more pixels.  Amount of
  *                motion depends on game_info.x_speed.  Movement stops at
@@ -561,7 +561,7 @@ move_photo_right ()
 }
 
 
-/* 
+/*
  * move_photo_up
  *   DESCRIPTION: Move background photo up one or more pixels.  Amount of
  *                motion depends on game_info.y_speed.  Movement stops at
@@ -578,7 +578,7 @@ move_photo_up ()
     int32_t idx;   /* Index over rows to redraw.         */
 
     /* Calculate the number of pixels by which to move. */
-    delta = room_photo_height (game_info.where) - SCROLL_Y_DIM - 
+    delta = room_photo_height (game_info.where) - SCROLL_Y_DIM -
     	    game_info.map_y;
     delta = (game_info.y_speed > delta ? delta : game_info.y_speed);
 
@@ -593,7 +593,7 @@ move_photo_up ()
 }
 
 
-/* 
+/*
  * redraw_room
  *   DESCRIPTION: Draw all lines on the screen.
  *   INPUTS: none
@@ -613,7 +613,7 @@ redraw_room ()
 }
 
 
-/* 
+/*
  * status_thread
  *   DESCRIPTION: Function executed by status message helper thread.
  *                Waits for a message to be displayed, then shows the
@@ -632,7 +632,7 @@ status_thread (void* ignore)
 
     while (1) {
 
-	/* 
+	/*
 	 * Wait for a message to appear.  Note that we must check the
 	 * condition after acquiring the lock, and that pthread_cond_wait
 	 * yields the lock, then reacquires the lock before returning.
@@ -642,7 +642,7 @@ status_thread (void* ignore)
 	    pthread_cond_wait (&msg_cv, &msg_lock);
 	}
 
-	/* 
+	/*
 	 * A message is present: if we stop before the timeout
 	 * passes, assume that a new one has been posted; if the
 	 * timeout passes, clear the message and wait for a new one.
@@ -650,7 +650,7 @@ status_thread (void* ignore)
 	do {
 	    /* Get the current time. */
 	    clock_gettime (CLOCK_REALTIME, &ts);
-	    
+
 	    /* Add 1.5 seconds to it. */
 	    if (500000000 <= ts.tv_nsec) {
 		ts.tv_sec += 2;
@@ -660,16 +660,16 @@ status_thread (void* ignore)
 		ts.tv_nsec += 500000000;
 	    }
 
-	    /* 
+	    /*
 	     * And go to sleep.  If we wake up due to anything but a
 	     * timeout, we assume (possibly incorrectly) that a new
 	     * message has appeared and try to wait 1.5 seconds again.
 	     */
-	} while (ETIMEDOUT != 
+	} while (ETIMEDOUT !=
 		 pthread_cond_timedwait (&msg_cv, &msg_lock, &ts));
 
-	/* 
-	 * Clear the message, then release the lock (remember that 
+	/*
+	 * Clear the message, then release the lock (remember that
 	 * pthread_cond_timedwait reacquires the lock before returning).
 	 */
 	status_msg[0] = '\0';
@@ -681,8 +681,8 @@ status_thread (void* ignore)
 }
 
 
-/* 
- * time_is_after 
+/*
+ * time_is_after
  *   DESCRIPTION: Check whether one time is at or after a second time.
  *   INPUTS: t1 -- the first time
  *           t2 -- the second time
@@ -702,7 +702,7 @@ time_is_after (struct timeval* t1, struct timeval* t2)
 }
 
 
-/* 
+/*
  * show_status (interface function; declared in world.h)
  *   DESCRIPTION: Show a specific status message of up to STATUS_MSG_LEN
  *                characters.
@@ -721,7 +721,7 @@ show_status (const char* s)
     strncpy (status_msg, s, STATUS_MSG_LEN);
     status_msg[STATUS_MSG_LEN] = '\0';
 
-    /* 
+    /*
      * Wake up the status message helper thread.  Note that we still hold
      * the msg_lock, so the thread can't wake up until we release it.
      */
@@ -732,7 +732,7 @@ show_status (const char* s)
 }
 
 
-/* 
+/*
  * main
  *   DESCRIPTION: Play the adventure game.
  *   INPUTS: none (command line arguments are ignored)
@@ -796,15 +796,15 @@ main ()
 
 
 #if !defined(NDEBUG)
-/* 
- * sanity_check 
+/*
+ * sanity_check
  *   DESCRIPTION: Perform checks on changes to constants and enumerated values.
  *   INPUTS: none
  *   OUTPUTS: none
  *   RETURN VALUE: 0 if checks pass, -1 if any fail
  *   SIDE EFFECTS: none
  */
-static int 
+static int
 sanity_check ()
 {
     int32_t cnt[NUM_TC_VALUES]; /* count of synonymous commands      */
@@ -838,8 +838,8 @@ sanity_check ()
 	cnt[cmd_list[idx].cmd]++;
     }
 
-    /* 
-     * Now check that every typed command can be issued with some string. 
+    /*
+     * Now check that every typed command can be issued with some string.
      * We could be fancier and check that it's possible to match (shadowing
      * can prevent it: matching "a" in entry #1 prevents matching "an" in
      * entry #2.).

@@ -8,18 +8,18 @@
  * documentation for any purpose, without fee, and without written agreement is
  * hereby granted, provided that the above copyright notice and the following
  * two paragraphs appear in all copies of this software.
- * 
- * IN NO EVENT SHALL THE AUTHOR OR THE UNIVERSITY OF ILLINOIS BE LIABLE TO 
- * ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL 
- * DAMAGES ARISING OUT  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, 
- * EVEN IF THE AUTHOR AND/OR THE UNIVERSITY OF ILLINOIS HAS BEEN ADVISED 
+ *
+ * IN NO EVENT SHALL THE AUTHOR OR THE UNIVERSITY OF ILLINOIS BE LIABLE TO
+ * ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
+ * DAMAGES ARISING OUT  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION,
+ * EVEN IF THE AUTHOR AND/OR THE UNIVERSITY OF ILLINOIS HAS BEEN ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
- * THE AUTHOR AND THE UNIVERSITY OF ILLINOIS SPECIFICALLY DISCLAIM ANY 
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE 
+ *
+ * THE AUTHOR AND THE UNIVERSITY OF ILLINOIS SPECIFICALLY DISCLAIM ANY
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE
  * PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND NEITHER THE AUTHOR NOR
- * THE UNIVERSITY OF ILLINOIS HAS ANY OBLIGATION TO PROVIDE MAINTENANCE, 
+ * THE UNIVERSITY OF ILLINOIS HAS ANY OBLIGATION TO PROVIDE MAINTENANCE,
  * SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
  *
  * Author:	    Steve Lumetta
@@ -51,27 +51,27 @@
 #include "text.h"
 
 
-/* 
+/*
  * Calculate the image build buffer parameters.  SCROLL_SIZE is the space
  * needed for one plane of an image.  SCREEN_SIZE is the space needed for
- * all four planes.  The extra +1 supports logical view x coordinates that 
- * are not multiples of four.  In these cases, some plane addresses are 
- * shifted by 1 byte forward.  The planes are stored in the build buffer 
- * in reverse order to allow those planes that shift forward to do so 
- * without running into planes that aren't shifted.  For example, when 
- * the leftmost x pixel in the logical view is 3 mod 4, planes 2, 1, and 0 
- * are shifted forward, while plane 3 is not, so there is one unused byte 
+ * all four planes.  The extra +1 supports logical view x coordinates that
+ * are not multiples of four.  In these cases, some plane addresses are
+ * shifted by 1 byte forward.  The planes are stored in the build buffer
+ * in reverse order to allow those planes that shift forward to do so
+ * without running into planes that aren't shifted.  For example, when
+ * the leftmost x pixel in the logical view is 3 mod 4, planes 2, 1, and 0
+ * are shifted forward, while plane 3 is not, so there is one unused byte
  * between the image of plane 3 and that of plane 2.  BUILD_BUF_SIZE is
  * the size of the space allocated for building images.  We add 20000 bytes
  * to reduce the number of memory copies required during scrolling.
- * Strictly speaking (try it), no extra space is necessary, but the minimum 
+ * Strictly speaking (try it), no extra space is necessary, but the minimum
  * means an extra 64kB memory copy with every scroll pixel.  Finally,
  * BUILD_BASE_INIT places initial (or transferred) logical view in the
  * middle of the available buffer area.
  */
 #define SCROLL_SIZE     (SCROLL_X_WIDTH * SCROLL_Y_DIM)
 #define SCREEN_SIZE	(SCROLL_SIZE * 4 + 1)
-#define BUILD_BUF_SIZE  (SCREEN_SIZE + 20000) 
+#define BUILD_BUF_SIZE  (SCREEN_SIZE + 20000)
 #define BUILD_BASE_INIT ((BUILD_BUF_SIZE - SCREEN_SIZE) / 2)
 
 /* Mode X and general VGA parameters */
@@ -82,22 +82,23 @@
 #define NUM_GRAPHICS_REGS       9
 #define NUM_ATTR_REGS          22
 
+#define STATUS_BAR_ADDR 1440
 /* VGA register settings for mode X */
 static unsigned short mode_X_seq[NUM_SEQUENCER_REGS] = {
     0x0100, 0x2101, 0x0F02, 0x0003, 0x0604
 };
 static unsigned short mode_X_CRTC[NUM_CRTC_REGS] = {
     0x5F00, 0x4F01, 0x5002, 0x8203, 0x5404, 0x8005, 0xBF06, 0x1F07,
-    0x0008, 0x4109, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E, 0x000F,
+    0x0008, 0x0109, 0x000A, 0x000B, 0x000C, 0x000D, 0x000E, 0x000F,
     0x9C10, 0x8E11, 0x8F12, 0x2813, 0x0014, 0x9615, 0xB916, 0xE317,
-    0xFF18
+    0x6B18
 };
 static unsigned char mode_X_attr[NUM_ATTR_REGS * 2] = {
-    0x00, 0x00, 0x01, 0x01, 0x02, 0x02, 0x03, 0x03, 
-    0x04, 0x04, 0x05, 0x05, 0x06, 0x06, 0x07, 0x07, 
-    0x08, 0x08, 0x09, 0x09, 0x0A, 0x0A, 0x0B, 0x0B, 
+    0x00, 0x00, 0x01, 0x01, 0x02, 0x02, 0x03, 0x03,
+    0x04, 0x04, 0x05, 0x05, 0x06, 0x06, 0x07, 0x07,
+    0x08, 0x08, 0x09, 0x09, 0x0A, 0x0A, 0x0B, 0x0B,
     0x0C, 0x0C, 0x0D, 0x0D, 0x0E, 0x0E, 0x0F, 0x0F,
-    0x10, 0x41, 0x11, 0x00, 0x12, 0x0F, 0x13, 0x00,
+    0x10, 0x30, 0x11, 0x00, 0x12, 0x0F, 0x13, 0x00,
     0x14, 0x00, 0x15, 0x00
 };
 static unsigned short mode_X_graphics[NUM_GRAPHICS_REGS] = {
@@ -116,9 +117,9 @@ static unsigned short text_CRTC[NUM_CRTC_REGS] = {
     0xFF18
 };
 static unsigned char text_attr[NUM_ATTR_REGS * 2] = {
-    0x00, 0x00, 0x01, 0x01, 0x02, 0x02, 0x03, 0x03, 
-    0x04, 0x04, 0x05, 0x05, 0x06, 0x06, 0x07, 0x07, 
-    0x08, 0x08, 0x09, 0x09, 0x0A, 0x0A, 0x0B, 0x0B, 
+    0x00, 0x00, 0x01, 0x01, 0x02, 0x02, 0x03, 0x03,
+    0x04, 0x04, 0x05, 0x05, 0x06, 0x06, 0x07, 0x07,
+    0x08, 0x08, 0x09, 0x09, 0x0A, 0x0A, 0x0B, 0x0B,
     0x0C, 0x0C, 0x0D, 0x0D, 0x0E, 0x0E, 0x0F, 0x0F,
     0x10, 0x0C, 0x11, 0x00, 0x12, 0x0F, 0x13, 0x08,
     0x14, 0x00, 0x15, 0x00
@@ -127,6 +128,7 @@ static unsigned short text_graphics[NUM_GRAPHICS_REGS] = {
     0x0000, 0x0001, 0x0002, 0x0003, 0x0004, 0x1005, 0x0E06, 0x0007,
     0xFF08
 };
+
 
 
 /* local functions--see function headers for details */
@@ -143,15 +145,17 @@ static void write_font_data ();
 static void set_text_mode_3 (int clear_scr);
 static void copy_image (unsigned char* img, unsigned short scr_addr);
 
+void copy_statusBar(unsigned char* img);
 
-/* 
+
+/*
  * Images are built in this buffer, then copied to the video memory.
  * Copying to video memory with REP MOVSB is vastly faster than anything
  * else with emulation, probably because it is a single instruction
  * and translates to a native loop.  It's also a pretty good technique
  * in normal machines (albeit not as elegant as some others for reducing
  * the number of video memory writes; unfortunately, these techniques
- * are slower in emulation...). 
+ * are slower in emulation...).
  *
  * The size allows the four plane images to move within an area of
  * about twice the size necessary (to reduce the need to deal with
@@ -186,16 +190,16 @@ static unsigned char* mem_image;    /* pointer to start of video memory */
 static unsigned short target_img;   /* offset of displayed screen image */
 
 
-/* 
- * functions provided by the caller to set_mode_X() and used to obtain  
+/*
+ * functions provided by the caller to set_mode_X() and used to obtain
  * graphic images of lines (pixels) to be mapped into the build buffer
  * planes for display in mode X
  */
 static void (*horiz_line_fn) (int, int, unsigned char[SCROLL_X_DIM]);
 static void (*vert_line_fn) (int, int, unsigned char[SCROLL_Y_DIM]);
-	
 
-/* 
+
+/*
  * macro used to target a specific video plane or planes when writing
  * to video memory in mode X; bits 8-11 in the mask_hi_bits enable writes
  * to planes 0-3, respectively
@@ -229,8 +233,8 @@ do {                                                                    \
       : "memory", "cc");                                                \
 } while (0)
 
-/* 
- * macro used to write an array of two-byte values to two consecutive ports 
+/*
+ * macro used to write an array of two-byte values to two consecutive ports
  */
 #define REP_OUTSW(port,source,count)                                    \
 do {                                                                    \
@@ -245,8 +249,8 @@ do {                                                                    \
       : "eax", "memory", "cc");                                         \
 } while (0)
 
-/* 
- * macro used to write an array of one-byte values to two consecutive ports 
+/*
+ * macro used to write an array of one-byte values to two consecutive ports
  */
 #define REP_OUTSB(port,source,count)                                    \
 do {                                                                    \
@@ -266,26 +270,26 @@ do {                                                                    \
  * set_mode_X
  *   DESCRIPTION: Puts the VGA into mode X.
  *   INPUTS: horiz_fill_fn -- this function is used as a callback (by
- *   			      draw_horiz_line) to obtain a graphical 
- *   			      image of a particular logical line for 
+ *   			      draw_horiz_line) to obtain a graphical
+ *   			      image of a particular logical line for
  *   			      drawing to the build buffer
  *           vert_fill_fn -- this function is used as a callback (by
- *   			     draw_vert_line) to obtain a graphical 
- *   			     image of a particular logical line for 
+ *   			     draw_vert_line) to obtain a graphical
+ *   			     image of a particular logical line for
  *   			     drawing to the build buffer
  *   OUTPUTS: none
  *   RETURN VALUE: 0 on success, -1 on failure
  *   SIDE EFFECTS: initializes the logical view window; maps video memory
  *                 and obtains permission for VGA ports; clears video memory
- */   
+ */
 int
 set_mode_X (void (*horiz_fill_fn) (int, int, unsigned char[SCROLL_X_DIM]),
             void (*vert_fill_fn) (int, int, unsigned char[SCROLL_Y_DIM]))
 {
     int i; /* loop index for filling memory fence with magic numbers */
 
-    /* 
-     * Record callback functions for obtaining horizontal and vertical 
+    /*
+     * Record callback functions for obtaining horizontal and vertical
      * line images.
      */
     if (horiz_fill_fn == NULL || vert_fill_fn == NULL)
@@ -305,13 +309,14 @@ set_mode_X (void (*horiz_fill_fn) (int, int, unsigned char[SCROLL_X_DIM]),
     }
 
     /* One display page goes at the start of video memory. */
-    target_img = 0x0000; 
+    /* STATUS_BAR_ADDR is the target_img of the status bar address*/
+    target_img = 18*SCROLL_X_WIDTH;
 
     /* Map video memory and obtain permission for VGA port access. */
     if (open_memory_and_ports () == -1)
         return -1;
 
-    /* 
+    /*
      * The code below was produced by recording a call to set mode 0013h
      * with display memory clearing and a windowed frame buffer, then
      * modifying the code to set mode X instead.  The code was then
@@ -345,12 +350,12 @@ set_mode_X (void (*horiz_fill_fn) (int, int, unsigned char[SCROLL_X_DIM]),
  *   RETURN VALUE: none
  *   SIDE EFFECTS: restores font data to video memory; clears screens;
  *                 unmaps video memory; checks memory fence integrity
- */   
+ */
 void
 clear_mode_X ()
 {
     int i;   /* loop index for checking memory fence */
-    
+
     /* Put VGA into text mode, restore font data, and clear screens. */
     set_text_mode_3 (1);
 
@@ -380,20 +385,20 @@ clear_mode_X ()
  *                in the build buffer.  If the location within the build
  *                buffer moves, this function copies all data from the old
  *                window that are within the new screen to the appropriate
- *                new location, so only data not previously on the screen 
+ *                new location, so only data not previously on the screen
  *                must be drawn before calling show_screen.
  *   INPUTS: (scr_x,scr_y) -- new upper left pixel of logical view window
  *   OUTPUTS: none
  *   RETURN VALUE: none
- *   SIDE EFFECTS: may shift position of logical view window within build 
+ *   SIDE EFFECTS: may shift position of logical view window within build
  *                 buffer
- */   
+ */
 void
 set_view_window (int scr_x, int scr_y)
 {
     int old_x, old_y;     /* old position of logical view window           */
-    int start_x, start_y; /* starting position for copying from old to new */ 
-    int end_x, end_y;     /* ending position for copying from old to new   */ 
+    int start_x, start_y; /* starting position for copying from old to new */
+    int end_x, end_y;     /* ending position for copying from old to new   */
     int start_off;        /* offset of copy start relative to old build    */
      		          /*    buffer start position                      */
     int length;           /* amount of data to be copied                   */
@@ -410,12 +415,12 @@ set_view_window (int scr_x, int scr_y)
     show_y = scr_y;
 
     /*
-     * If the new view window fits within the boundaries of the build 
+     * If the new view window fits within the boundaries of the build
      * buffer, we need move nothing around.
     */
     if (img3_off + (scr_x >> 2) + scr_y * SCROLL_X_WIDTH >= 0 &&
         img3_off + 3 * SCROLL_SIZE +
-	    ((scr_x + SCROLL_X_DIM - 1) >> 2) + 
+	    ((scr_x + SCROLL_X_DIM - 1) >> 2) +
 	    (scr_y + SCROLL_Y_DIM - 1) * SCROLL_X_WIDTH < BUILD_BUF_SIZE)
 	return;
 
@@ -459,7 +464,7 @@ set_view_window (int scr_x, int scr_y)
     }
     end_y += SCROLL_Y_DIM - 1;
 
-    /* 
+    /*
      * We now calculate the starting and ending addresses for the copy
      * as well as the new offsets for use with the build buffer.  The
      * length to be copied is basically the ending offset minus the starting
@@ -467,15 +472,15 @@ set_view_window (int scr_x, int scr_y)
      */
     start_off = (start_x >> 2) + start_y * SCROLL_X_WIDTH;
     start_addr = img3 + start_off;
-    length = (end_x >> 2) + end_y * SCROLL_X_WIDTH + 1 - start_off + 
+    length = (end_x >> 2) + end_y * SCROLL_X_WIDTH + 1 - start_off +
 	     3 * SCROLL_SIZE;
     img3_off = BUILD_BASE_INIT - (show_x >> 2) - show_y * SCROLL_X_WIDTH;
     img3 = build + img3_off + MEM_FENCE_WIDTH;
     target_addr = img3 + start_off;
 
-    /* 
+    /*
      * Copy the relevant portion of the screen from the old location to the
-     * new one.  The areas may overlap, so copy direction is important. 
+     * new one.  The areas may overlap, so copy direction is important.
      * (You should be able to explain why!)
      */
     if (start_addr < target_addr)
@@ -495,7 +500,7 @@ set_view_window (int scr_x, int scr_y)
  *   RETURN VALUE: none
  *   SIDE EFFECTS: copies from the build buffer to video memory;
  *                 shifts the VGA display source to point to the new image
- */   
+ */
 void
 show_screen ()
 {
@@ -503,8 +508,8 @@ show_screen ()
     int p_off;            /* plane offset of first display plane */
     int i;		  /* loop index over video planes        */
 
-    /* 
-     * Calculate offset of build buffer plane to be mapped into plane 0 
+    /*
+     * Calculate offset of build buffer plane to be mapped into plane 0
      * of display.
      */
     p_off = (3 - (show_x & 3));
@@ -518,11 +523,11 @@ show_screen ()
     /* Draw to each plane in the video memory. */
     for (i = 0; i < 4; i++) {
 	SET_WRITE_MASK (1 << (i + 8));
-	copy_image (addr + ((p_off - i + 4) & 3) * SCROLL_SIZE + (p_off < i), 
+	copy_image (addr + ((p_off - i + 4) & 3) * SCROLL_SIZE + (p_off < i),
 	            target_img);
     }
 
-    /* 
+    /*
      * Change the VGA registers to point the top left of the screen
      * to the video memory that we just filled.
      */
@@ -530,19 +535,32 @@ show_screen ()
     OUTW (0x03D4, ((target_img & 0x00FF) << 8) | 0x0D);
 }
 
+void
+show_statusBar ()
+{
+    unsigned char* addr;  /* source address for copy             */
+    int i;		  /* loop index over video planes        */
 
+    addr = statusBar_color();
+
+    /* Draw to each plane in the video memory. */
+    for (i = 0; i < 4; i++) {
+	SET_WRITE_MASK (1 << (i + 8));
+	copy_statusBar (addr + ((3 - i + 4) & 3) * 1440 + (3 < i));
+    }
+}
 /*
  * clear_screens
- *   DESCRIPTION: Fills the video memory with zeroes. 
+ *   DESCRIPTION: Fills the video memory with zeroes.
  *   INPUTS: none
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: fills all 256kB of VGA video memory with zeroes
- */   
-void 
+ */
+void
 clear_screens ()
 {
-    /* Write to all four planes at once. */ 
+    /* Write to all four planes at once. */
     SET_WRITE_MASK (0x0F00);
 
     /* Set 64kB to zero (times four planes = 256kB). */
@@ -550,7 +568,7 @@ clear_screens ()
 }
 
 
-/* 
+/*
  * The functions inside the preprocessor block below rely on functions
  * in maze.c to generate graphical images of the maze.  These functions
  * are neither available nor necessary for the text restoration program
@@ -561,39 +579,66 @@ clear_screens ()
 
 /*
  * draw_vert_line
- *   DESCRIPTION: Draw a vertical map line into the build buffer.  The 
+ *   DESCRIPTION: Draw a vertical map line into the build buffer.  The
  *                line should be offset from the left side of the logical
- *                view window screen by the given number of pixels.  
+ *                view window screen by the given number of pixels.
  *   INPUTS: x -- the 0-based pixel column number of the line to be drawn
  *                within the logical view window (equivalent to the number
  *                of pixels from the leftmost pixel to the line to be
  *                drawn)
  *   OUTPUTS: none
- *   RETURN VALUE: Returns 0 on success.  If x is outside of the valid 
- *                 SCROLL range, the function returns -1.  
+ *   RETURN VALUE: Returns 0 on success.  If x is outside of the valid
+ *                 SCROLL range, the function returns -1.
  *   SIDE EFFECTS: draws into the build buffer
- */   
+ */
 int
 draw_vert_line (int x)
 {
     /* to be written... */
+    unsigned char buf[SCROLL_Y_DIM]; /* buffer for graphical image of line */
+    unsigned char* addr;             /* address of first pixel in build    */
+   				     /*     buffer (without plane offset)  */
+    int p_off;                       /* offset of plane of first pixel     */
+    int i;			     /* loop index over pixels             */
+
+
+    if (x < 0 || x >= SCROLL_X_DIM){
+      return -1;
+    }
+
+    /* Adjust x to the logical row value. */
+    x += show_x;
+
+    /* Get the image of the line. */
+    (*vert_line_fn) (x, show_y, buf);
+
+    /* Calculate starting address in build buffer. */
+    addr = img3 + (show_y * SCROLL_X_WIDTH) + (x >> 2);
+    /* Calculate plane offset of first pixel. */
+    p_off = (3 - (x & 3));
+    /* Copy image data into appropriate planes in build buffer. */
+    for(i = 0; i < SCROLL_Y_DIM; i++){
+      addr[p_off * SCROLL_SIZE] = buf[i];
+      addr += SCROLL_X_WIDTH;
+    }
+
     return 0;
 }
 
 
 /*
  * draw_horiz_line
- *   DESCRIPTION: Draw a horizontal map line into the build buffer.  The 
- *                line should be offset from the top of the logical view 
- *                window screen by the given number of pixels.  
+ *   DESCRIPTION: Draw a horizontal map line into the build buffer.  The
+ *                line should be offset from the top of the logical view
+ *                window screen by the given number of pixels.
  *   INPUTS: y -- the 0-based pixel row number of the line to be drawn
  *                within the logical view window (equivalent to the number
  *                of pixels from the top pixel to the line to be drawn)
  *   OUTPUTS: none
- *   RETURN VALUE: Returns 0 on success.  If y is outside of the valid 
- *                 SCROLL range, the function returns -1.  
+ *   RETURN VALUE: Returns 0 on success.  If y is outside of the valid
+ *                 SCROLL range, the function returns -1.
  *   SIDE EFFECTS: draws into the build buffer
- */   
+ */
 int
 draw_horiz_line (int y)
 {
@@ -622,10 +667,10 @@ draw_horiz_line (int y)
     /* Copy image data into appropriate planes in build buffer. */
     for (i = 0; i < SCROLL_X_DIM; i++) {
         addr[p_off * SCROLL_SIZE] = buf[i];
-	if (--p_off < 0) {
-	    p_off = 3;
-	    addr++;
-	}
+      	if (--p_off < 0) {
+      	    p_off = 3;
+      	    addr++;
+      	}
     }
 
     /* Return success. */
@@ -643,7 +688,7 @@ draw_horiz_line (int y)
  *   OUTPUTS: none
  *   RETURN VALUE: 0 on success, -1 on failure
  *   SIDE EFFECTS: prints an error message to stdout on failure
- */   
+ */
 static int
 open_memory_and_ports ()
 {
@@ -681,13 +726,13 @@ open_memory_and_ports ()
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: none
- */   
+ */
 static void
 VGA_blank (int blank_bit)
 {
-    /* 
-     * Move blanking bit into position for VGA sequencer register 
-     * (index 1). 
+    /*
+     * Move blanking bit into position for VGA sequencer register
+     * (index 1).
      */
     blank_bit = ((blank_bit & 1) << 5);
 
@@ -720,12 +765,12 @@ VGA_blank (int blank_bit)
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: none
- */   
+ */
 static void
 set_seq_regs_and_reset (unsigned short table[NUM_SEQUENCER_REGS],
 			unsigned char val)
 {
-    /* 
+    /*
      * Dump table of values to sequencer registers.  Includes forced reset
      * as well as video blanking.
      */
@@ -749,12 +794,12 @@ set_seq_regs_and_reset (unsigned short table[NUM_SEQUENCER_REGS],
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: none
- */   
+ */
 static void
 set_CRTC_registers (unsigned short table[NUM_CRTC_REGS])
 {
     /* clear protection bit to enable write access to first few registers */
-    OUTW (0x03D4, 0x0011); 
+    OUTW (0x03D4, 0x0011);
     REP_OUTSW (0x03D4, table, NUM_CRTC_REGS);
 }
 
@@ -768,8 +813,8 @@ set_CRTC_registers (unsigned short table[NUM_CRTC_REGS])
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: none
- */   
-static void 
+ */
+static void
 set_attr_registers (unsigned char table[NUM_ATTR_REGS * 2])
 {
     /* Reset attribute register to write index next rather than data. */
@@ -787,7 +832,7 @@ set_attr_registers (unsigned char table[NUM_ATTR_REGS * 2])
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: none
- */   
+ */
 static void
 set_graphics_registers (unsigned short table[NUM_GRAPHICS_REGS])
 {
@@ -797,13 +842,13 @@ set_graphics_registers (unsigned short table[NUM_GRAPHICS_REGS])
 
 /*
  * fill_palette_mode_x
- *   DESCRIPTION: Fill VGA palette with necessary colors for the adventure 
+ *   DESCRIPTION: Fill VGA palette with necessary colors for the adventure
  *                game.  Only the first 64 (of 256) colors are written.
  *   INPUTS: none
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: changes the first 64 palette colors
- */   
+ */
 static void
 fill_palette_mode_x ()
 {
@@ -860,7 +905,7 @@ fill_palette_mode_x ()
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: changes the first 32 palette colors
- */   
+ */
 static void
 fill_palette_text ()
 {
@@ -895,12 +940,12 @@ fill_palette_text ()
 /*
  * write_font_data
  *   DESCRIPTION: Copy font data into VGA memory, changing and restoring
- *                VGA register values in order to do so. 
+ *                VGA register values in order to do so.
  *   INPUTS: none
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: leaves VGA registers in final text mode state
- */   
+ */
 static void
 write_font_data ()
 {
@@ -938,7 +983,7 @@ write_font_data ()
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: may clear screens; writes font data to video memory
- */   
+ */
 static void
 set_text_mode_3 (int clear_scr)
 {
@@ -946,10 +991,10 @@ set_text_mode_3 (int clear_scr)
     int i;                  /* loop over text screen words             */
 
     VGA_blank (1);                               /* blank the screen        */
-    /* 
+    /*
      * The value here had been changed to 0x63, but seems to work
      * fine in QEMU (and VirtualPC, where I got it) with the 0x04
-     * bit set (VGA_MIS_DCLK_28322_720).  
+     * bit set (VGA_MIS_DCLK_28322_720).
      */
     set_seq_regs_and_reset (text_seq, 0x67);     /* sequencer registers     */
     set_CRTC_registers (text_CRTC);              /* CRT control registers   */
@@ -957,7 +1002,7 @@ set_text_mode_3 (int clear_scr)
     set_graphics_registers (text_graphics);      /* graphics registers      */
     fill_palette_text ();			 /* palette colors          */
     if (clear_scr) {				 /* clear screens if needed */
-	txt_scr = (unsigned long*)(mem_image + 0x18000); 
+	txt_scr = (unsigned long*)(mem_image + 0x18000);
 	for (i = 0; i < 8192; i++)
 	    *txt_scr++ = 0x07200720;
     }
@@ -968,28 +1013,48 @@ set_text_mode_3 (int clear_scr)
 
 /*
  * copy_image
- *   DESCRIPTION: Copy one plane of a screen from the build buffer to the 
+ *   DESCRIPTION: Copy one plane of a screen from the build buffer to the
  *                video memory.
  *   INPUTS: img -- a pointer to a single screen plane in the build buffer
  *           scr_addr -- the destination offset in video memory
  *   OUTPUTS: none
  *   RETURN VALUE: none
  *   SIDE EFFECTS: copies a plane from the build buffer to video memory
- */   
+ */
 static void
 copy_image (unsigned char* img, unsigned short scr_addr)
 {
-    /* 
+    /*
      * memcpy is actually probably good enough here, and is usually
      * implemented using ISA-specific features like those below,
      * but the code here provides an example of x86 string moves
      */
     asm volatile (
+        "IMAGE_SIZE_NEW = 14560                              ;"
         "cld                                                 ;"
-       	"movl $16000,%%ecx                                   ;"
+       	"movl $IMAGE_SIZE_NEW, %%ecx                                   ;"
        	"rep movsb    # copy ECX bytes from M[ESI] to M[EDI]  "
       : /* no outputs */
-      : "S" (img), "D" (mem_image + scr_addr) 
+      : "S" (img), "D" (mem_image + scr_addr)
+      : "eax", "ecx", "memory"
+    );
+}
+
+void
+copy_statusBar (unsigned char* img)
+{
+    /*
+     * memcpy is actually probably good enough here, and is usually
+     * implemented using ISA-specific features like those below,
+     * but the code here provides an example of x86 string moves
+     */
+    asm volatile (
+        "IMAGE_SIZE_NEW = 1440                              ;"
+        "cld                                                 ;"
+       	"movl $IMAGE_SIZE_NEW, %%ecx                                   ;"
+       	"rep movsb    # copy ECX bytes from M[ESI] to M[EDI]  "
+      : /* no outputs */
+      : "S" (img), "D" (mem_image)
       : "eax", "ecx", "memory"
     );
 }
@@ -1000,13 +1065,13 @@ copy_image (unsigned char* img, unsigned short scr_addr)
 /*
  * main -- for the "tr" program
  *   DESCRIPTION: Put the VGA into text mode 3 without clearing the screens,
- *                which serves as a useful debugging tool when trying to 
+ *                which serves as a useful debugging tool when trying to
  *                debug programs that rely on having the VGA in mode X for
  *                normal operation.  Writes font data to video memory.
  *   INPUTS: none (command line arguments are ignored)
  *   OUTPUTS: none
  *   RETURN VALUE: 0 on success, 3 in panic scenarios
- */   
+ */
 int
 main ()
 {
@@ -1017,7 +1082,7 @@ main ()
     /* Put VGA into text mode without clearing the screen. */
     set_text_mode_3 (0);
 
-    /* Unmap video memory. */ 
+    /* Unmap video memory. */
     (void)munmap (mem_image, VID_MEM_SIZE);
 
     /* Return success. */
