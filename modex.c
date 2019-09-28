@@ -535,6 +535,15 @@ show_screen ()
     OUTW (0x03D4, ((target_img & 0x00FF) << 8) | 0x0D);
 }
 
+
+// MODIFIED
+// new function to put status bar on the screen
+// inputs: the string to be printed on the status bar and an int that decides
+// what type of message is displayed
+// output: none
+// return value: none
+// side effects: copies from the build buffer to video memory;
+// shifts the VGA display source to point to the new image
 void
 show_statusBar (unsigned char * string, int msg_or_room)
 {
@@ -1041,6 +1050,14 @@ copy_image (unsigned char* img, unsigned short scr_addr)
       : "eax", "ecx", "memory"
     );
 }
+
+// MODIFIED
+// DESCRIPTION: Copy one plane of a screen from the color buffer to the video memory.
+// INPUTS: img -- a pointer to a single screen plane in the build buffer
+//  
+//   OUTPUTS: none
+//    RETURN VALUE: none
+//    SIDE EFFECTS: copies a plane from the build buffer to video memory
 
 void
 copy_statusBar (unsigned char* img)

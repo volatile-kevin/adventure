@@ -246,8 +246,17 @@ game_loop ()
 	    /* Only draw once on entry. */
 	    enter_room = 0;
 	}
+  // MODIFIED
+  // get the room name
+
   unsigned char * roomName = room_name(game_info.where);
+
 	show_screen ();
+
+  // MODIFIED
+  // if there's no message, show room name
+  // else show the status message
+
   if(status_msg[0] == '\0'){
     show_statusBar(roomName, 1);
   }
@@ -723,6 +732,9 @@ show_status (const char* s)
     /* Copy the new message under the protection of msg_lock. */
     strncpy (status_msg, s, STATUS_MSG_LEN);
     status_msg[STATUS_MSG_LEN] = '\0';
+    // MODIFIED
+    // print the message
+    show_statusBar(status_msg, 0);
 
     /*
      * Wake up the status message helper thread.  Note that we still hold

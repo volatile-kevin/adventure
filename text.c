@@ -36,7 +36,17 @@
 #include <string.h>
 
 #include "text.h"
+// MODIFIED
+// initialize buffer of status bar as global
 static unsigned char colorBuf[5760];
+// MODIFIED
+// this function takes string input and converts it to plane form in the buffer array;
+// specifically, it will be called to print room names or any message that is on the left of the status bar
+// inputs: the string to be printed on the status bar and an int that decides
+// what type of message is displayed
+// output: none
+// return value: none
+// side effects: modifies global var colorBuf array
 
 void parse_roomName(unsigned char * input){
   int i, j, k;
@@ -45,6 +55,10 @@ void parse_roomName(unsigned char * input){
   for(i = 0; i < 5760; i++){
     colorBuf[i] = 0;
   }
+  // loop through row by row of the entire status bar
+  // loop through the length of the string to index what letter we're on
+  // loop to 8 for 8 left shifts to get the MSB of each byte
+  // check which plane we are on and add the bit to that plane with appropriate offset
   for(i = 0; i < 16; i++){
     for(j = 0; j < length; j++){
       unsigned char fontIndex = input[j];
@@ -68,7 +82,14 @@ void parse_roomName(unsigned char * input){
     }
   }
 }
-
+// MODIFIED
+// this function takes string input and converts it to plane form in the buffer array;
+// specifically, this function will be called to show status messages in the middle of the status bar
+// inputs: the string to be printed on the status bar and an int that decides
+// what type of message is displayed
+// output: none
+// return value: none
+// side effects: modifies global var colorBuf array
 void parse_message(unsigned char * input){
   int i, j, k;
   int length = strlen((char*)input);
@@ -76,6 +97,10 @@ void parse_message(unsigned char * input){
   for(i = 0; i < 5760; i++){
     colorBuf[i] = 0;
   }
+  // loop through row by row of the entire status bar
+  // loop through the length of the string to index what letter we're on
+  // loop to 8 for 8 left shifts to get the MSB of each byte
+  // check which plane we are on and add the bit to that plane with appropriate offset
   for(i = 0; i < 16; i++){
     for(j = 0; j < length; j++){
       unsigned char fontIndex = input[j];
@@ -84,30 +109,38 @@ void parse_message(unsigned char * input){
         int whichplaneIndex = 3-whichplane;
         int k_offset = k/4;
         if(whichplane == 0){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*(j+length/4-length/20) + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset + (20 - length/3)] = (128 & (font_data[fontIndex][i] << k)) / 128;
         }
         if(whichplane == 1){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*(j+length/4-length/20) + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset + (20 - length/3)] = (128 & (font_data[fontIndex][i] << k)) / 128;
         }
         if(whichplane == 2){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*(j+length/4-length/20) + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset + (20 - length/3)] = (128 & (font_data[fontIndex][i] << k)) / 128;
         }
         if(whichplane == 3){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*(j+length/4-length/20) + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset + (20 - length/3)] = (128 & (font_data[fontIndex][i] << k)) / 128;
         }
       }
     }
   }
 }
-
+// MODIFIED
+// this function loops through the color buf array and assigns colors
+// inputs: the string to be printed on the status bar and an int that decides
+// what type of message is displayed
+// output: the modified color buffer array
+// return value: same as output
+// side effects: modifies global var colorBuf array
 unsigned char * statusBar_color(unsigned char * string, int msg_or_room){
   int i;
+  // check what kind of messages should be printed based on msg_or_room
   if(msg_or_room == 1){
     parse_roomName(string);
   }
   if(msg_or_room == 0){
     parse_message(string);
   }
+  // loop through and assign colors to bits
   for(i = 0; i < 5760; i++){
     if(colorBuf[i] == 1){
       colorBuf[i] = 0;
