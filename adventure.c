@@ -248,7 +248,12 @@ game_loop ()
 	}
   unsigned char * roomName = room_name(game_info.where);
 	show_screen ();
-  show_statusBar (roomName);
+  if(status_msg[0] == '\0'){
+    show_statusBar(roomName, 1);
+  }
+  else{
+    show_statusBar(status_msg, 0);
+  }
 	/*
 	 * Wait for tick.  The tick defines the basic timing of our
 	 * event loop, and is the minimum amount of time between events.
@@ -640,7 +645,6 @@ status_thread (void* ignore)
 	while ('\0' == status_msg[0]) {
 	    pthread_cond_wait (&msg_cv, &msg_lock);
 	}
-
 	/*
 	 * A message is present: if we stop before the timeout
 	 * passes, assume that a new one has been posted; if the

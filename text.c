@@ -38,7 +38,7 @@
 #include "text.h"
 static unsigned char colorBuf[5760];
 
-void get_letter(unsigned char * input){
+void parse_roomName(unsigned char * input){
   int i, j, k;
   int length = strlen((char*)input);
   // make all of the status bar 0
@@ -69,12 +69,45 @@ void get_letter(unsigned char * input){
   }
 }
 
+void parse_message(unsigned char * input){
+  int i, j, k;
+  int length = strlen((char*)input);
+  // make all of the status bar 0
+  for(i = 0; i < 5760; i++){
+    colorBuf[i] = 0;
+  }
+  for(i = 0; i < 16; i++){
+    for(j = 0; j < length; j++){
+      unsigned char fontIndex = input[j];
+      for(k = 0; k < 8; k++){
+        int whichplane = k % 4;
+        int whichplaneIndex = 3-whichplane;
+        int k_offset = k/4;
+        if(whichplane == 0){
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*(j+length/4-length/20) + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+        }
+        if(whichplane == 1){
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*(j+length/4-length/20) + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+        }
+        if(whichplane == 2){
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*(j+length/4-length/20) + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+        }
+        if(whichplane == 3){
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*(j+length/4-length/20) + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+        }
+      }
+    }
+  }
+}
 
-
-unsigned char * statusBar_color(unsigned char * string){
+unsigned char * statusBar_color(unsigned char * string, int msg_or_room){
   int i;
-
-  get_letter(string);
+  if(msg_or_room == 1){
+    parse_roomName(string);
+  }
+  if(msg_or_room == 0){
+    parse_message(string);
+  }
   for(i = 0; i < 5760; i++){
     if(colorBuf[i] == 1){
       colorBuf[i] = 0;

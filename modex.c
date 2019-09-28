@@ -536,12 +536,14 @@ show_screen ()
 }
 
 void
-show_statusBar (unsigned char * string)
+show_statusBar (unsigned char * string, int msg_or_room)
 {
     unsigned char* addr;  /* source address for copy             */
     int i;		  /* loop index over video planes        */
 
-    addr = statusBar_color(string);
+
+    addr = statusBar_color(string, msg_or_room);
+
 
     /* Draw to each plane in the video memory. */
     for (i = 0; i < 4; i++) {
