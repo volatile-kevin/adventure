@@ -246,9 +246,9 @@ game_loop ()
 	    /* Only draw once on entry. */
 	    enter_room = 0;
 	}
-
+  unsigned char * roomName = room_name(game_info.where);
 	show_screen ();
-  show_statusBar ();
+  show_statusBar (roomName);
 	/*
 	 * Wait for tick.  The tick defines the basic timing of our
 	 * event loop, and is the minimum amount of time between events.
@@ -345,7 +345,6 @@ handle_typing ()
     cmd = get_typed_command ();
     while (' ' == *cmd) { cmd++; }
     if ('\0' == *cmd) { return 0; }
-
     /*
      * Walk over the command verb, calculating its length as we go.  Space
      * or NUL marks the end of the verb, after which the argument begins.

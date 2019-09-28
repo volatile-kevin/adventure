@@ -43,5 +43,5 @@
 /* Standard VGA text font. */
 extern unsigned char font_data[256][16];
 void get_letter(unsigned char * input);
-extern unsigned char * statusBar_color();
+extern unsigned char * statusBar_color(unsigned char * string);
 #endif /* TEXT_H */

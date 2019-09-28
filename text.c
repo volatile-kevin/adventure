@@ -69,22 +69,12 @@ void get_letter(unsigned char * input){
   }
 }
 
-// for(j = 0; j < 16; j++){
-//   int k;
-//   for(k = 0; k < 8; k++){
-//       colorBuf[128*i + j + k] = (128 && (font_data[fontIndex][j] << k)) / 128;
-//     }
-//   }
 
-// for(i = 0; i < length; i++){
-//   int fontIndex = (int)input[i];
-//   int j;
-// }
 
-unsigned char * statusBar_color(){
+unsigned char * statusBar_color(unsigned char * string){
   int i;
 
-  get_letter((unsigned char *)"fucking shit poo poo garbage");
+  get_letter(string);
   for(i = 0; i < 5760; i++){
     if(colorBuf[i] == 1){
       colorBuf[i] = 0;
