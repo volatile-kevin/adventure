@@ -1,0 +1,32 @@
+BUG 1: draw vert line
+    addr = img3 + show_y * SCROLL_X_WIDTH + x;
+
+    p_off = (3 - (show_x & 3));
+
+    for(i = 0; i < SCROLL_Y_DIM; i++){
+      addr[p_off * SCROLL_SIZE] = buf[i];
+      addr += SCROLL_X_WIDTH;
+    }
+
+	This code for draw_vert_line is drawing individual lines for every 4th pixel scrolled across the entire screen
+
+	HOW LONG? 1 hr
+	WHY? x was not divided by 4 which is necessary as there are 4 total planes
+	FIX: starting address (addr) changed to = img3 + show_y * SCROLL_X_WIDTH + (x >> 2)
+
+BUG 2: text to graphics
+
+	either a line, block, or garbage colors were printed to status bar
+
+	HOW LONG? 3 hrs
+
+	WHY? && vs &, indexing was off, show status bar function did not use correct offset or planes
+
+
+BUG 3: showing status message
+
+	typing "get" right after start prints correct status, but after the first status message, no matter what is typed, "What are you babbling about?" is always shown
+
+	HOW LONG? 30 min
+
+	FIX: must backspace after commands, game design, not actual bug i guess?

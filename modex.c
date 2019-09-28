@@ -1054,7 +1054,7 @@ copy_image (unsigned char* img, unsigned short scr_addr)
 // MODIFIED
 // DESCRIPTION: Copy one plane of a screen from the color buffer to the video memory.
 // INPUTS: img -- a pointer to a single screen plane in the build buffer
-//  
+//
 //   OUTPUTS: none
 //    RETURN VALUE: none
 //    SIDE EFFECTS: copies a plane from the build buffer to video memory

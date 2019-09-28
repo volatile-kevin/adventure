@@ -93,6 +93,16 @@ void parse_roomName(unsigned char * input){
 void parse_message(unsigned char * input){
   int i, j, k;
   int length = strlen((char*)input);
+  int numSpaces = (40 - length)/2;
+  if(length % 2){
+    numSpaces += 1;
+  }
+  unsigned char messageStr[41] = {0};
+  for(i = 0; i < numSpaces; i++){
+    messageStr[i] = ' ';
+  }
+
+  strncat(messageStr, input, 40);
   // make all of the status bar 0
   for(i = 0; i < 5760; i++){
     colorBuf[i] = 0;
@@ -102,23 +112,23 @@ void parse_message(unsigned char * input){
   // loop to 8 for 8 left shifts to get the MSB of each byte
   // check which plane we are on and add the bit to that plane with appropriate offset
   for(i = 0; i < 16; i++){
-    for(j = 0; j < length; j++){
-      unsigned char fontIndex = input[j];
+    for(j = 0; j < length + numSpaces; j++){
+      unsigned char fontIndex = messageStr[j];
       for(k = 0; k < 8; k++){
         int whichplane = k % 4;
         int whichplaneIndex = 3-whichplane;
         int k_offset = k/4;
         if(whichplane == 0){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset + (20 - length/3)] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
         }
         if(whichplane == 1){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset + (20 - length/3)] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
         }
         if(whichplane == 2){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset + (20 - length/3)] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
         }
         if(whichplane == 3){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset + (20 - length/3)] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
         }
       }
     }

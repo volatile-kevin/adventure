@@ -207,7 +207,7 @@ game_loop ()
     struct timeval cur_time; /* current time (during tick)      */
     cmd_t cmd;               /* command issued by input control */
     int32_t enter_room;      /* player has changed rooms        */
-
+    unsigned char * currentType;
     /* Record the starting time--assume success. */
     (void)gettimeofday (&start_time, NULL);
 
@@ -257,8 +257,27 @@ game_loop ()
   // if there's no message, show room name
   // else show the status message
 
+  currentType = get_typed_command ();
+  int lengthOfType = strlen(currentType);
+  int lengthOfName = strlen(roomName);
+  int numOfSpaces = 40 - lengthOfName - lengthOfType;
+  int i;
+
+  unsigned char roomName_type[41] = {0};
+  unsigned char spaceStr[numOfSpaces];
+
+  for(i = 0; i < numOfSpaces; i++){
+    spaceStr[i] = ' ';
+    if(i == numOfSpaces-1){
+      spaceStr[i] = '\0';
+    }
+  }
+  strcpy(roomName_type, roomName);
+  strcat(roomName_type, spaceStr);
+  strcat(roomName_type, currentType);
+  
   if(status_msg[0] == '\0'){
-    show_statusBar(roomName, 1);
+    show_statusBar(roomName_type, 1);
   }
   else{
     show_statusBar(status_msg, 0);
