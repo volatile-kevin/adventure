@@ -256,13 +256,19 @@ game_loop ()
   // MODIFIED
   // if there's no message, show room name
   // else show the status message
-
+  // if the user is typing, get the current char/string typed
+  // buffer it with spaces after the room name depending on length
+  // add an underscore at the end of the typed string until full
   currentType = get_typed_command ();
+  // printf(currentType);
+  // printf("\n");
   int lengthOfType = strlen(currentType);
   int lengthOfName = strlen(roomName);
   int numOfSpaces = 40 - lengthOfName - lengthOfType;
   int i;
-
+  unsigned char underscore[2];
+  underscore[0] = '_';
+  underscore[1] = '\0';
   unsigned char roomName_type[41] = {0};
   unsigned char spaceStr[numOfSpaces];
 
@@ -272,10 +278,29 @@ game_loop ()
       spaceStr[i] = '\0';
     }
   }
-  strcpy(roomName_type, roomName);
-  strcat(roomName_type, spaceStr);
-  strcat(roomName_type, currentType);
-  
+  // concatenate the strings
+
+  if(lengthOfType < 20){
+    strcpy(roomName_type, roomName);
+    strcat(roomName_type, spaceStr);
+    strcat(roomName_type, currentType);
+    strcat(roomName_type, underscore);
+  }
+  else{
+    unsigned char spaceStr2[numOfSpaces+1];
+    for(i = 0; i < numOfSpaces+1; i++){
+      spaceStr[i] = ' ';
+      if(i == numOfSpaces){
+        spaceStr[i] = '\0';
+      }
+    }
+    strcpy(roomName_type, roomName);
+    strcat(roomName_type, spaceStr);
+    strcat(roomName_type, currentType);
+  }
+
+  // if there is no status message, show the room and current typing
+  // else show status message
   if(status_msg[0] == '\0'){
     show_statusBar(roomName_type, 1);
   }
