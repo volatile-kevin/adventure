@@ -83,6 +83,7 @@
 #define NUM_ATTR_REGS          22
 
 #define STATUS_BAR_ADDR 1440
+#define STATUSBAR_SIZE 1440
 /* VGA register settings for mode X */
 static unsigned short mode_X_seq[NUM_SEQUENCER_REGS] = {
     0x0100, 0x2101, 0x0F02, 0x0003, 0x0604
@@ -550,14 +551,14 @@ show_statusBar (unsigned char * string, int msg_or_room)
     unsigned char* addr;  /* source address for copy             */
     int i;		  /* loop index over video planes        */
 
-
+    // pass in the buffer
     addr = statusBar_color(string, msg_or_room);
 
 
     /* Draw to each plane in the video memory. */
     for (i = 0; i < 4; i++) {
 	SET_WRITE_MASK (1 << (i + 8));
-	copy_statusBar (addr + ((3 - i + 4) & 3) * 1440 + (3 < i));
+	copy_statusBar (addr + ((3 - i + 4) & 3) * STATUSBAR_SIZE + (3 < i));
     }
 }
 /*

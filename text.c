@@ -36,9 +36,21 @@
 #include <string.h>
 
 #include "text.h"
+#define BUFFER_SIZE 5760        // size of buffer
+#define CHAR_ROWS 16            // num of rows for 1 character
+#define CHAR_COLS 8             // num of cols for 1 character
+#define ROW_OFFSET 80           // used to make top row 0
+#define NUM_PLANES 4            // number of planes, 0-3
+#define STATUSBAR_SIZE 1440     // size of each status bar plane
+#define MAX_PLANE 3             // biggest plane #
+#define STR_OFFSET 2            // used to double index
+#define BITMASK_BYTE 128        // 10000000 used to bitmask for MSB of a byte
+#define MAX_CHARS 40            // max number of chars in string
+#define WHITE_INDEX 63          // index of color white
+#define STRING_ARR_SIZE 41      // string array with room for null char
 // MODIFIED
 // initialize buffer of status bar as global
-static unsigned char colorBuf[5760];
+static unsigned char colorBuf[BUFFER_SIZE];
 // MODIFIED
 // this function takes string input and converts it to plane form in the buffer array;
 // specifically, it will be called to print room names or any message that is on the left of the status bar
@@ -49,34 +61,35 @@ static unsigned char colorBuf[5760];
 // side effects: modifies global var colorBuf array
 
 void parse_roomName(unsigned char * input){
+  //printf("%s\n", input);
   int i, j, k;
   int length = strlen((char*)input);
   // make all of the status bar 0
-  for(i = 0; i < 5760; i++){
+  for(i = 0; i < BUFFER_SIZE; i++){
     colorBuf[i] = 0;
   }
   // loop through row by row of the entire status bar
   // loop through the length of the string to index what letter we're on
   // loop to 8 for 8 left shifts to get the MSB of each byte
   // check which plane we are on and add the bit to that plane with appropriate offset
-  for(i = 0; i < 16; i++){
+  for(i = 0; i < CHAR_ROWS; i++){
     for(j = 0; j < length; j++){
       unsigned char fontIndex = input[j];
-      for(k = 0; k < 8; k++){
-        int whichplane = k % 4;
-        int whichplaneIndex = 3-whichplane;
-        int k_offset = k/4;
+      for(k = 0; k < CHAR_COLS; k++){
+        int whichplane = k % NUM_PLANES;
+        int whichplaneIndex = MAX_PLANE - whichplane;
+        int k_offset = k/NUM_PLANES;
         if(whichplane == 0){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[ROW_OFFSET + ROW_OFFSET*i + STATUSBAR_SIZE*whichplaneIndex + STR_OFFSET*j + k_offset] = (BITMASK_BYTE & (font_data[fontIndex][i] << k)) / BITMASK_BYTE;
         }
         if(whichplane == 1){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[ROW_OFFSET + ROW_OFFSET*i + STATUSBAR_SIZE*whichplaneIndex + STR_OFFSET*j + k_offset] = (BITMASK_BYTE & (font_data[fontIndex][i] << k)) / BITMASK_BYTE;
         }
         if(whichplane == 2){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[ROW_OFFSET + ROW_OFFSET*i + STATUSBAR_SIZE*whichplaneIndex + STR_OFFSET*j + k_offset] = (BITMASK_BYTE & (font_data[fontIndex][i] << k)) / BITMASK_BYTE;
         }
         if(whichplane == 3){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[ROW_OFFSET + ROW_OFFSET*i + STATUSBAR_SIZE*whichplaneIndex + STR_OFFSET*j + k_offset] = (BITMASK_BYTE & (font_data[fontIndex][i] << k)) / BITMASK_BYTE;
         }
       }
     }
@@ -93,42 +106,42 @@ void parse_roomName(unsigned char * input){
 void parse_message(unsigned char * input){
   int i, j, k;
   int length = strlen((char*)input);
-  int numSpaces = (40 - length)/2;
+  int numSpaces = (MAX_CHARS - length)/2;
   if(length % 2){
     numSpaces += 1;
   }
-  unsigned char messageStr[41] = {0};
+  unsigned char messageStr[STRING_ARR_SIZE] = {0};
   for(i = 0; i < numSpaces; i++){
     messageStr[i] = ' ';
   }
 
-  strncat(messageStr, input, 40);
+  strncat(messageStr, input, MAX_CHARS);
   // make all of the status bar 0
-  for(i = 0; i < 5760; i++){
+  for(i = 0; i < BUFFER_SIZE; i++){
     colorBuf[i] = 0;
   }
   // loop through row by row of the entire status bar
   // loop through the length of the string to index what letter we're on
   // loop to 8 for 8 left shifts to get the MSB of each byte
   // check which plane we are on and add the bit to that plane with appropriate offset
-  for(i = 0; i < 16; i++){
+  for(i = 0; i < CHAR_ROWS; i++){
     for(j = 0; j < length + numSpaces; j++){
       unsigned char fontIndex = messageStr[j];
-      for(k = 0; k < 8; k++){
-        int whichplane = k % 4;
-        int whichplaneIndex = 3-whichplane;
-        int k_offset = k/4;
+      for(k = 0; k < CHAR_COLS; k++){
+        int whichplane = k % NUM_PLANES;
+        int whichplaneIndex = MAX_PLANE-whichplane;
+        int k_offset = k/NUM_PLANES;
         if(whichplane == 0){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[ROW_OFFSET + ROW_OFFSET*i + STATUSBAR_SIZE*whichplaneIndex + STR_OFFSET*j + k_offset] = (BITMASK_BYTE & (font_data[fontIndex][i] << k)) / BITMASK_BYTE;
         }
         if(whichplane == 1){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[ROW_OFFSET + ROW_OFFSET*i + STATUSBAR_SIZE*whichplaneIndex + STR_OFFSET*j + k_offset] = (BITMASK_BYTE & (font_data[fontIndex][i] << k)) / BITMASK_BYTE;
         }
         if(whichplane == 2){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[ROW_OFFSET + ROW_OFFSET*i + STATUSBAR_SIZE*whichplaneIndex + STR_OFFSET*j + k_offset] = (BITMASK_BYTE & (font_data[fontIndex][i] << k)) / BITMASK_BYTE;
         }
         if(whichplane == 3){
-          colorBuf[80 + 80*i + 1440*whichplaneIndex + 2*j + k_offset] = (128 & (font_data[fontIndex][i] << k)) / 128;
+          colorBuf[ROW_OFFSET + ROW_OFFSET*i + STATUSBAR_SIZE*whichplaneIndex + STR_OFFSET*j + k_offset] = (BITMASK_BYTE & (font_data[fontIndex][i] << k)) / BITMASK_BYTE;
         }
       }
     }
@@ -151,12 +164,12 @@ unsigned char * statusBar_color(unsigned char * string, int msg_or_room){
     parse_message(string);
   }
   // loop through and assign colors to bits
-  for(i = 0; i < 5760; i++){
+  for(i = 0; i < BUFFER_SIZE; i++){
     if(colorBuf[i] == 1){
       colorBuf[i] = 0;
     }
     else {
-      colorBuf[i] = 63;
+      colorBuf[i] = WHITE_INDEX;
     }
   }
   return colorBuf;

@@ -66,7 +66,10 @@ static int sanity_check (void);
 #define TICK_USEC      50000 /* tick length in microseconds          */
 #define STATUS_MSG_LEN 40    /* maximum length of status message     */
 #define MOTION_SPEED   2     /* pixels moved per command             */
-
+#define MAX_CHARS 40         // max number of chars in string
+#define STRING_ARR_SIZE 41   // size of string array
+#define MAX_TYPE 20          // amount of chars user can type
+#define UNDERSCORE_ARR_SIZE 2 // underscore array with a null char
 /* outcome of the game */
 typedef enum {GAME_WON, GAME_QUIT} game_condition_t;
 
@@ -249,38 +252,66 @@ game_loop ()
   // MODIFIED
   // get the room name
 
-  unsigned char * roomName = room_name(game_info.where);
+  unsigned char * roomName = (unsigned char *)room_name(game_info.where);
 
 	show_screen ();
 
   // MODIFIED
   // if there's no message, show room name
   // else show the status message
-
-  currentType = get_typed_command ();
-  int lengthOfType = strlen(currentType);
-  int lengthOfName = strlen(roomName);
-  int numOfSpaces = 40 - lengthOfName - lengthOfType;
+  // if the user is typing, get the current char/string typed
+  // buffer it with spaces after the room name depending on length
+  // add an underscore at the end of the typed string until full
+  currentType = (unsigned char *)get_typed_command ();
+  // printf(currentType);
+  // printf("\n");
+  int lengthOfType = strlen((char *)currentType);
+  int lengthOfName = strlen((char *)roomName);
+  int numOfSpaces = MAX_CHARS - lengthOfName - lengthOfType;
   int i;
-
-  unsigned char roomName_type[41] = {0};
+  //add an underscore at the end of the typing
+  unsigned char underscore[UNDERSCORE_ARR_SIZE];
+  underscore[0] = '_';
+  underscore[1] = '\0';
+  //string that holds both room name and typing
+  unsigned char roomName_type[STRING_ARR_SIZE] = {0};
+  //string of spaces between
   unsigned char spaceStr[numOfSpaces];
-
+  //fill with spaces
   for(i = 0; i < numOfSpaces; i++){
     spaceStr[i] = ' ';
     if(i == numOfSpaces-1){
       spaceStr[i] = '\0';
     }
   }
-  strcpy(roomName_type, roomName);
-  strcat(roomName_type, spaceStr);
-  strcat(roomName_type, currentType);
-  
+  // concatenate the strings
+  // if size of current type isn't maxed,  add underscore
+  if(lengthOfType < MAX_TYPE){
+    strcpy((char *)roomName_type, (char *)roomName);
+    strcat((char *)roomName_type, (char *)spaceStr);
+    strcat((char *)roomName_type, (char *)currentType);
+    strcat((char *)roomName_type, (char *)underscore);
+  }
+  // if size of current type is maxed, get rid of underscore
+  else{
+    for(i = 0; i < numOfSpaces+1; i++){
+      spaceStr[i] = ' ';
+      if(i == numOfSpaces){
+        spaceStr[i] = '\0';
+      }
+    }
+    strcpy((char *)roomName_type, (char *)roomName);
+    strcat((char *)roomName_type, (char *)spaceStr);
+    strcat((char *)roomName_type, (char *)currentType);
+  }
+
+  // if there is no status message, show the room and current typing
+  // else show status message
   if(status_msg[0] == '\0'){
     show_statusBar(roomName_type, 1);
   }
   else{
-    show_statusBar(status_msg, 0);
+    show_statusBar((unsigned char *)status_msg, 0);
   }
 	/*
 	 * Wait for tick.  The tick defines the basic timing of our
@@ -753,7 +784,7 @@ show_status (const char* s)
     status_msg[STATUS_MSG_LEN] = '\0';
     // MODIFIED
     // print the message
-    show_statusBar(status_msg, 0);
+    show_statusBar((unsigned char *)status_msg, 0);
 
     /*
      * Wake up the status message helper thread.  Note that we still hold
