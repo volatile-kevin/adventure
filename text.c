@@ -107,9 +107,9 @@ void parse_message(unsigned char * input){
   int i, j, k;
   int length = strlen((char*)input);
   int numSpaces = (MAX_CHARS - length)/2;
-  if(length % 2){
-    numSpaces += 1;
-  }
+
+  numSpaces += (length % 2);
+
   unsigned char messageStr[STRING_ARR_SIZE] = {0};
   for(i = 0; i < numSpaces; i++){
     messageStr[i] = ' ';

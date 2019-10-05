@@ -307,12 +307,16 @@ game_loop ()
 
   // if there is no status message, show the room and current typing
   // else show status message
+  (void)pthread_mutex_lock (&msg_lock);
+
   if(status_msg[0] == '\0'){
     show_statusBar(roomName_type, 1);
   }
   else{
     show_statusBar((unsigned char *)status_msg, 0);
   }
+  (void)pthread_mutex_unlock (&msg_lock);
+
 	/*
 	 * Wait for tick.  The tick defines the basic timing of our
 	 * event loop, and is the minimum amount of time between events.
