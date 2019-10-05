@@ -115,7 +115,7 @@ void parse_message(unsigned char * input){
     messageStr[i] = ' ';
   }
 
-  strncat(messageStr, input, MAX_CHARS);
+  strncat((char *)messageStr, (char *)input, MAX_CHARS);
   // make all of the status bar 0
   for(i = 0; i < BUFFER_SIZE; i++){
     colorBuf[i] = 0;
