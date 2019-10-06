@@ -58,8 +58,8 @@
 struct photo_t {
     photo_header_t hdr;			/* defines height and width */
     uint8_t        palette[192][3];     /* optimized palette colors */
-    uint8_t*       img;                 /* pixel data 2 bits              */
-    // uint8_t*       img2;                 /* pixel data 4 bits             */
+    uint8_t*       img;                 /* pixel data               */
+    uint8_t*       img2;                 /* pixel data               */
 };
 
 /*
@@ -76,6 +76,11 @@ struct image_t {
     uint8_t*       img;                 /* pixel data               */
 };
 
+struct colorData_t {
+    uint8_t saveIndex;
+    uint8_t colorBitStr;
+    uint8_t frequency;
+};
 
 /* file-scope variables */
 
@@ -431,6 +436,8 @@ read_photo (const char* fname)
 	1 != fread (&p->hdr, sizeof (p->hdr), 1, in) ||
 	MAX_PHOTO_WIDTH < p->hdr.width ||
 	MAX_PHOTO_HEIGHT < p->hdr.height ||
+  NULL == (p->img2 = malloc
+		 (p->hdr.width * p->hdr.height * sizeof (p->img2[0]))) ||
 	NULL == (p->img = malloc
 		 (p->hdr.width * p->hdr.height * sizeof (p->img[0])))) {
 	if (NULL != p) {
@@ -450,21 +457,19 @@ read_photo (const char* fname)
      * in this order, whereas in memory we store the data in the reverse
      * order (top to bottom).
      */
-    for (y = p->hdr.height; y-- > 0; ) {
-
+  struct colorData_t colorData[p->hdr.width * p->hdr.height * sizeof (p->img[0])];
+  for (y = p->hdr.height; y-- > 0; ) {
 	/* Loop over columns from left to right. */
-	for (x = 0; p->hdr.width > x; x++) {
-
+	 for (x = 0; p->hdr.width > x; x++) {
 	    /*
 	     * Try to read one 16-bit pixel.  On failure, clean up and
 	     * return NULL.
 	     */
 	    if (1 != fread (&pixel, sizeof (pixel), 1, in)) {
-		free (p->img);
-		free (p);
-	        (void)fclose (in);
-		return NULL;
-
+	      free (p->img);
+	      free (p);
+        (void)fclose (in);
+	      return NULL;
 	    }
 	    /*
 	     * 16-bit pixel is coded as 5:6:5 RGB (5 bits red, 6 bits green,
@@ -481,10 +486,11 @@ read_photo (const char* fname)
 					    (((pixel >> 9) & 0x3) << 2) |
 					    ((pixel >> 3) & 0x3));
       // get 4 MSB of each color in each pixel
-      // p->img2[p->hdr.width * y + x] = (((pixel >> 12) << 8) |
-			// 		    (((pixel >> 7) & 0xF) << 4) |
-			// 		    ((pixel >> 1) & 0xF));
-	}
+      p->img2[p->hdr.width * y + x] = (((pixel >> 12) << 8) |
+					    (((pixel >> 7) & 0xF) << 4) |
+					    ((pixel >> 1) & 0xF));
+	           }
+      colorData[p->img2[p->hdr.width * y + x]].frequency += 1;
     }
 
     /* All done.  Return success. */
