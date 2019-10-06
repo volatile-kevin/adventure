@@ -49,7 +49,6 @@
 
 #include "modex.h"
 #include "text.h"
-#include "photo.h"
 
 
 /*
@@ -142,7 +141,6 @@ static void set_CRTC_registers (unsigned short table[NUM_CRTC_REGS]);
 static void set_attr_registers (unsigned char table[NUM_ATTR_REGS * 2]);
 static void set_graphics_registers (unsigned short table[NUM_GRAPHICS_REGS]);
 static void fill_palette_mode_x ();
-static void fill_palette_mode_x_C2();
 static void fill_palette_text ();
 static void write_font_data ();
 static void set_text_mode_3 (int clear_scr);
@@ -909,20 +907,7 @@ fill_palette_mode_x ()
     /* Write all 64 colors from array. */
     REP_OUTSB (0x03C9, palette_RGB, 64 * 3);
 }
-static void
-fill_palette_mode_x_C2 ()
-{
-    /* 6-bit RGB (red, green, blue) values for first 64 colors */
-    /* these are coded for 2 bits red, 2 bits green, 2 bits blue */
-    static unsigned char palette_RGB[128][3];
-    
 
-    /* Start writing at color 0. */
-    OUTB (0x03C8, 0x00);
-
-    /* Write all 64 colors from array. */
-    REP_OUTSB (0x03C9, palette_RGB, 64 * 3);
-}
 
 /*
  * fill_palette_text
