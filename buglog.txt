@@ -30,3 +30,42 @@ BUG 3: showing status message
 	HOW LONG? 30 min
 
 	FIX: must backspace after commands, game design, not actual bug i guess?
+
+BUG 4: showing status message flickers for 1 frame instead of 1.5 seconds
+
+	HOW LONG? 1 hour
+
+	FIX: added my show_statusBar function within given file show_status (inside of locks), as well as inside the game loop
+
+BUG 5: After going past max number of characters typed on screen, garbage replaces that string, only on Alma location
+
+	HOW LONG? 2 hours
+
+	FIX: added null chars at the end of EVERY string that will be concatenated to the final string.
+
+BUG 6: Can't scroll all the way down on images
+
+	HOW LONG? 30 min
+
+	FIX: changed image size in copy_image to 16000 - 1440, changed SCROLL_Y_DIM from 200 to 182 to account for the resizing needed for status bar
+	
+CHECKPOINT2:
+
+BUG 4: qsort not working correctly, items are not it ascending order by frequency
+
+	HOW LONG? 3 hours
+
+	FIX: declared all struct data as uint8_t, so numbers were getting maxed at 255. Fixed by changing struct data to ints
+
+BUG 5: "floating point exception"
+
+	HOW LONG? 30 mins
+
+	FIX: was dividing by 0 when finding average values. Included an if statement to do nothing if frequency was 0
+
+BUG 6: not coloring correctly: colors on photo remain unchanged after writing to palette with octree data
+
+	HOW LONG?
+
+	FIX: 
+
