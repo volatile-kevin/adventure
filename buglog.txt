@@ -65,7 +65,18 @@ BUG 5: "floating point exception"
 
 BUG 6: not coloring correctly: colors on photo remain unchanged after writing to palette with octree data
 
-	HOW LONG?
+	HOW LONG? 1 day
 
-	FIX: 
+	FIX: never actually saved indices to perserve image pixel data
 
+BUG 7: PANIC-- can't build world
+
+	HOW LONG? 2 hours	
+
+	FIX: fseek(in, 0, 0), retarget the image pointer to start at 0
+
+BUG 8: octree algorithm just colors with black or random garbage values
+
+	HOW LONG? 3 days
+
+	FIX: uint8_t was the type of p->img. I made a copy of this to save the 4:4:4 rgb, hence only taking in the G and B values.

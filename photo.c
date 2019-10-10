@@ -55,12 +55,12 @@
  * left and traversing the top row before returning to the left of
  * the second row, and so forth.  No padding should be used.
  */
-struct photo_t {
-    photo_header_t hdr;			/* defines height and width */
-    uint8_t        palette[192][3];     /* optimized palette colors */
-    uint8_t*       img;                 /* pixel data 2 bits              */
-    // uint8_t*       img2;                 /* pixel data 4 bits             */
-};
+// struct photo_t {
+//     photo_header_t hdr;			/* defines height and width */
+//     uint8_t        palette[192][3];     /* optimized palette colors */
+//     uint8_t*       img;                 /* pixel data 2 bits              */
+//     uint8_t*       img2;                 /* pixel data 4 bits             */
+// };
 
 /*
  * An object image.  The code for managing these images has been given
@@ -76,6 +76,32 @@ struct image_t {
     uint8_t*       img;                 /* pixel data               */
 };
 
+typedef struct colorData_t4 {
+    unsigned int       saveIndex;                 /* pixel data               */
+    unsigned int       frequency;                 /* pixel data               */
+
+    unsigned int       total_R4;                 /* pixel data               */
+    unsigned int       total_G4;                 /* pixel data               */
+    unsigned int       total_B4;                 /* pixel data               */
+
+    unsigned int       avg_R4;                 /* pixel data               */
+    unsigned int       avg_G4;                 /* pixel data               */
+    unsigned int       avg_B4;                 /* pixel data               */
+
+} colorDataL4;
+
+typedef struct colorData_t2 {
+    unsigned int       saveIndex;                 /* pixel data               */
+    unsigned int       frequency;                 /* pixel data               */
+
+    unsigned int       total_R2;                 /* pixel data               */
+    unsigned int       total_G2;                 /* pixel data               */
+    unsigned int       total_B2;                 /* pixel data               */
+
+    unsigned int       avg_R2;                 /* pixel data               */
+    unsigned int       avg_G2;                 /* pixel data               */
+    unsigned int       avg_B2;                 /* pixel data               */
+} colorDataL2;
 
 /* file-scope variables */
 
@@ -305,9 +331,8 @@ photo_width (const photo_t* p)
 
 /*
  * prep_room
- *   DESCRIPTION: Prepare a new room for display.  You might want to set
- *                up the VGA palette registers according to the color
- *                palette that you chose for this room.
+ *   DESCRIPTION: Prepare a new room for display. Calls room_photo to get the photo_t struct of the room
+ *                             Then pass that struct into fill_palette_mode_x_OCT to actually send to VGA
  *   INPUTS: r -- pointer to the new room
  *   OUTPUTS: none
  *   RETURN VALUE: none
@@ -318,6 +343,9 @@ prep_room (const room_t* r)
 {
     /* Record the current room. */
     cur_room = r;
+    photo_t* p = room_photo(r);
+    // this function in modex.c sends the palette to VGA
+    fill_palette_mode_x_OCT((unsigned int*)p->palette);
 }
 
 
@@ -405,6 +433,8 @@ read_obj_image (const char* fname)
  *                replace this code with palette color selection, and
  *                must map the image pixels into the palette colors that
  *                you have defined.
+ *   EDIT: Now reads pixel data and maps to 4:4:4 RGB as well as 2:2:2. these colors will be
+ *              mapped to the palette which the VGA reads
  *   INPUTS: fname -- file name for input
  *   OUTPUTS: none
  *   RETURN VALUE: pointer to newly allocated photo on success, or NULL
@@ -419,7 +449,9 @@ read_photo (const char* fname)
     uint16_t x;		/* index over image columns */
     uint16_t y;		/* index over image rows    */
     uint16_t pixel;	/* one pixel from the file  */
-
+    int palette_idx[4096];
+    // fill this array with -1 to differentiate from actual data
+    memset(palette_idx, -1, 4096*sizeof(int));
     /*
      * Open the file, allocate the structure, read the header, do some
      * sanity checks on it, and allocate space to hold the photo pixels.
@@ -450,21 +482,22 @@ read_photo (const char* fname)
      * in this order, whereas in memory we store the data in the reverse
      * order (top to bottom).
      */
+    colorDataL4 colorData4[4096];
+    colorDataL2 colorData2[64];
+    memset(colorData4, 0, 4096 * sizeof(colorData4[0]));
+    memset(colorData2, 0, 64 * sizeof(colorData2[0]));
     for (y = p->hdr.height; y-- > 0; ) {
-
 	/* Loop over columns from left to right. */
-	for (x = 0; p->hdr.width > x; x++) {
-
+	     for (x = 0; p->hdr.width > x; x++) {
 	    /*
 	     * Try to read one 16-bit pixel.  On failure, clean up and
 	     * return NULL.
 	     */
 	    if (1 != fread (&pixel, sizeof (pixel), 1, in)) {
-		free (p->img);
-		free (p);
-	        (void)fclose (in);
-		return NULL;
-
+    		free (p->img);
+    		free (p);
+    	  (void)fclose (in);
+    		return NULL;
 	    }
 	    /*
 	     * 16-bit pixel is coded as 5:6:5 RGB (5 bits red, 6 bits green,
@@ -477,17 +510,136 @@ read_photo (const char* fname)
 	     * the game puts up a photo, you should then change the palette
 	     * to match the colors needed for that photo.
 	     */
-	    p->img[p->hdr.width * y + x] = (((pixel >> 14) << 4) |
-					    (((pixel >> 9) & 0x3) << 2) |
-					    ((pixel >> 3) & 0x3));
-      // get 4 MSB of each color in each pixel
-      // p->img2[p->hdr.width * y + x] = (((pixel >> 12) << 8) |
-			// 		    (((pixel >> 7) & 0xF) << 4) |
-			// 		    ((pixel >> 1) & 0xF));
-	}
+
+
+      //get 4 MSB of each color in each pixel
+      p->img[p->hdr.width * y + x] = (((pixel >> 12) << 8) |
+					    (((pixel >> 7) & 0xF) << 4) |
+					    ((pixel >> 1) & 0xF));
+      //save it into a variable to be sent to the struct
+      int bitIndex4 =  (((pixel >> 12) << 8) |
+					    (((pixel >> 7) & 0xF) << 4) |
+					    ((pixel >> 1) & 0xF));
+
+      // fill the struct array with RGB, index, and add to count
+      colorData4[bitIndex4].frequency += 1;
+      colorData4[bitIndex4].saveIndex = bitIndex4;
+      colorData4[bitIndex4].total_R4 += (pixel >> 11) << 1;
+      colorData4[bitIndex4].total_G4 += (pixel >> 5) & 63;
+      colorData4[bitIndex4].total_B4 += (pixel & 31) << 1;
+	    }
+    }
+    // sort by most populous, descending order
+    qsort(colorData4, 4096, sizeof(colorData4[0]), cmpfunc);
+    // get the average of each bit string, only for most populated 128
+    int i;
+    int j;
+  for(i = 0; i < 128; i++){
+    if(colorData4[i].frequency != 0){
+      colorData4[i].avg_R4 = (colorData4[i].total_R4) / colorData4[i].frequency;
+      colorData4[i].avg_G4 = colorData4[i].total_G4 / colorData4[i].frequency;
+      colorData4[i].avg_B4 = (colorData4[i].total_B4) / colorData4[i].frequency;
+    }
+  }
+// fill level 2 tree with level 4 nodes that are not in the most populous 128
+for(i = 128; i < 4096; i++){
+  int idxL2 = ((((colorData4[i].saveIndex >> 10) & 3) << 4) | (((colorData4[i].saveIndex >> 6) & 3) << 2) | ((colorData4[i].saveIndex >> 2) & 3));
+  colorData2[idxL2].frequency += colorData4[i].frequency;
+  colorData2[idxL2].total_R2 += colorData4[i].total_R4;
+  colorData2[idxL2].total_G2 += colorData4[i].total_G4;
+  colorData2[idxL2].total_B2 += colorData4[i].total_B4;
+}
+// calculate averages for level 2
+for(i = 0; i < 64; i++){
+      if(colorData2[i].frequency != 0){
+        colorData2[i].avg_R2 = (colorData2[i].total_R2) / colorData2[i].frequency;
+        colorData2[i].avg_G2 = colorData2[i].total_G2 / colorData2[i].frequency;
+        colorData2[i].avg_B2 = (colorData2[i].total_B2) / colorData2[i].frequency;
+      }
+    }
+// put level 4 and level 2 nodes in the palette to get sent to VGA
+  for(i = 0; i < 192; i++){
+    for(j = 0; j < 3; j++){
+      if(i < 128){
+        // array that keeps track of index so we don't have to loop again in the next iteration through pixels
+        palette_idx[colorData4[i].saveIndex] = i;
+        switch(j){
+          case 0:
+            p->palette[i][j] = colorData4[i].avg_R4;
+            break;
+          case 1:
+            p->palette[i][j] = colorData4[i].avg_G4;
+            break;
+          case 2:
+            p->palette[i][j] = colorData4[i].avg_B4;
+            break;
+        }
+      }
+      else{
+        switch(j){
+          case 0:
+            p->palette[i][j] = colorData2[i-128].avg_R2;
+            break;
+          case 1:
+            p->palette[i][j] = colorData2[i-128].avg_G2;
+            break;
+          case 2:
+            p->palette[i][j] = colorData2[i-128].avg_B2;
+            break;
+      }
+    }
+  }
+}
+// restart the image pointer at 0
+  fseek(in, sizeof(p->hdr), SEEK_SET);
+  // iterate through the image again, this time setting pixels to palette indecies
+  for (y = p->hdr.height; y-- > 0; ) {
+/* Loop over columns from left to right. */
+     for (x = 0; p->hdr.width > x; x++) {
+    /*
+     * Try to read one 16-bit pixel.  On failure, clean up and
+     * return NULL.
+     */
+    if (1 != fread (&pixel, sizeof (pixel), 1, in)) {
+      free (p->img);
+      free (p);
+      (void)fclose (in);
+      return NULL;
     }
 
+    // get 2 MSB of each color in each pixel
+    int bitIndex2_ = (((pixel >> 14) << 4) |
+            (((pixel >> 9) & 0x3) << 2) |
+            ((pixel >> 3) & 0x3));
+
+    // get 4 MSB of each color in each pixel
+    int bitIndex4_ = (((pixel >> 12) << 8) |
+            (((pixel >> 7) & 0xF) << 4) |
+            ((pixel >> 1) & 0xF));
+    // remap the indecies to the pixels in each image
+    int flag = 0;
+    if(palette_idx[bitIndex4_] != -1){
+      p->img[p->hdr.width * y + x] = palette_idx[bitIndex4_] + 64;
+    }
+    else{
+      flag = 1;
+    }
+
+    if(flag == 1){
+      p->img[p->hdr.width * y + x] = bitIndex2_ + 192;
+    }
+  }
+}
     /* All done.  Return success. */
     (void)fclose (in);
     return p;
+
+}
+
+
+int cmpfunc (const void * a, const void * b) {
+  colorDataL4 *colorData1 = (struct colorData_t4 *)a;
+  colorDataL4 *colorData2 = (struct colorData_t4 *)b;
+
+    return (colorData2->frequency - colorData1->frequency);
 }

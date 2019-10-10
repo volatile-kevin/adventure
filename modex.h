@@ -42,6 +42,7 @@
 
 
 #include "text.h"
+#include "photo.h"
 
 
 /*
@@ -127,9 +128,10 @@ extern void set_view_window (int scr_x, int scr_y);
 /* show the logical view window on the monitor */
 extern void show_screen ();
 extern void show_statusBar (unsigned char * string, int msg_or_room);
+extern void create_final_palette (photo_t * p);
+extern void fill_palette_mode_x_OCT(unsigned int* palette);
 /* clear the video memory in mode X */
 extern void clear_screens ();
-
 /* draw a horizontal line at vertical pixel y within the logical view window */
 extern int draw_horiz_line (int y);
 

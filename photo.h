@@ -8,18 +8,18 @@
  * documentation for any purpose, without fee, and without written agreement is
  * hereby granted, provided that the above copyright notice and the following
  * two paragraphs appear in all copies of this software.
- * 
- * IN NO EVENT SHALL THE AUTHOR OR THE UNIVERSITY OF ILLINOIS BE LIABLE TO 
- * ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL 
- * DAMAGES ARISING OUT  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, 
- * EVEN IF THE AUTHOR AND/OR THE UNIVERSITY OF ILLINOIS HAS BEEN ADVISED 
+ *
+ * IN NO EVENT SHALL THE AUTHOR OR THE UNIVERSITY OF ILLINOIS BE LIABLE TO
+ * ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
+ * DAMAGES ARISING OUT  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION,
+ * EVEN IF THE AUTHOR AND/OR THE UNIVERSITY OF ILLINOIS HAS BEEN ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
- * THE AUTHOR AND THE UNIVERSITY OF ILLINOIS SPECIFICALLY DISCLAIM ANY 
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE 
+ *
+ * THE AUTHOR AND THE UNIVERSITY OF ILLINOIS SPECIFICALLY DISCLAIM ANY
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE
  * PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND NEITHER THE AUTHOR NOR
- * THE UNIVERSITY OF ILLINOIS HAS ANY OBLIGATION TO PROVIDE MAINTENANCE, 
+ * THE UNIVERSITY OF ILLINOIS HAS ANY OBLIGATION TO PROVIDE MAINTENANCE,
  * SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
  *
  * Author:	    Steve Lumetta
@@ -51,8 +51,18 @@
 #define MAX_PHOTO_HEIGHT  1024
 #define MAX_OBJECT_WIDTH  160
 #define MAX_OBJECT_HEIGHT 100
+#define IMAGE_X_DIM     320   /* pixels; must be divisible by 4             */
+#define IMAGE_Y_DIM     182   /* pixels                                     */
+#define IMAGE_X_WIDTH   (IMAGE_X_DIM / 4)          /* addresses (bytes)     */
+#define SCROLL_X_DIM	IMAGE_X_DIM                /* full image width      */
+#define SCROLL_Y_DIM    IMAGE_Y_DIM                /* full image width      */
+#define SCROLL_X_WIDTH  (IMAGE_X_DIM / 4)          /* addresses (bytes)     */
 
-
+struct photo_t {
+    photo_header_t hdr;			/* defines height and width */
+    uint8_t palette[192][3];     /* optimized palette colors */
+    uint8_t*       img;                 /* pixel data 2 bits              */
+};
 /* Fill a buffer with the pixels for a horizontal line of current room. */
 extern void fill_horiz_buffer (int x, int y, unsigned char buf[SCROLL_X_DIM]);
 
@@ -71,9 +81,9 @@ extern uint32_t photo_height (const photo_t* p);
 /* Get width of room photo in pixels. */
 extern uint32_t photo_width (const photo_t* p);
 
-/* 
+/*
  * Prepare room for display (record pointer for use by callbacks, set up
- * VGA palette, etc.). 
+ * VGA palette, etc.).
  */
 extern void prep_room (const room_t* r);
 
@@ -82,8 +92,8 @@ extern image_t* read_obj_image (const char* fname);
 
 /* Read room photo from a file into a dynamically allocated structure. */
 extern photo_t* read_photo (const char* fname);
-
-/* 
+extern int cmpfunc (const void * a, const void * b);
+/*
  * N.B.  I'm aware that Valgrind and similar tools will report the fact that
  * I chose not to bother freeing image data before terminating the program.
  * It's probably a bad habit, but ... maybe in a future release (FIXME).

@@ -69,7 +69,10 @@ static int sanity_check (void);
 #define MAX_CHARS 40         // max number of chars in string
 #define STRING_ARR_SIZE 41   // size of string array
 #define MAX_TYPE 20          // amount of chars user can type
-#define UNDERSCORE_ARR_SIZE 2 // underscore array with a null char
+#define UNDERSCORE_ARR_SIZE 2  // underscore array with a null char
+
+
+
 /* outcome of the game */
 typedef enum {GAME_WON, GAME_QUIT} game_condition_t;
 
@@ -80,6 +83,8 @@ typedef struct {
     int          x_speed;        /* number of pixels of x motion per move */
     int          y_speed;        /* number of pixels of y motion per move */
 } game_info_t;
+
+// copied from world.c
 
 
 /*
@@ -151,6 +156,7 @@ static int time_is_after (struct timeval* t1, struct timeval* t2);
 
 /* file-scope variables */
 
+
 static game_info_t game_info; /* game information */
 
 
@@ -205,12 +211,16 @@ game_loop ()
      * Variables used to carry information between event loop ticks; see
      * initialization below for explanations of purpose.
      */
+
     struct timeval start_time, tick_time;
 
     struct timeval cur_time; /* current time (during tick)      */
     cmd_t cmd;               /* command issued by input control */
     int32_t enter_room;      /* player has changed rooms        */
     unsigned char * currentType;
+
+    //MODIFIED
+
     /* Record the starting time--assume success. */
     (void)gettimeofday (&start_time, NULL);
 
@@ -251,7 +261,6 @@ game_loop ()
 	}
   // MODIFIED
   // get the room name
-
   unsigned char * roomName = (unsigned char *)room_name(game_info.where);
 
 	show_screen ();
