@@ -8,18 +8,18 @@
  * documentation for any purpose, without fee, and without written agreement is
  * hereby granted, provided that the above copyright notice and the following
  * two paragraphs appear in all copies of this software.
- * 
- * IN NO EVENT SHALL THE AUTHOR OR THE UNIVERSITY OF ILLINOIS BE LIABLE TO 
- * ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL 
- * DAMAGES ARISING OUT  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, 
- * EVEN IF THE AUTHOR AND/OR THE UNIVERSITY OF ILLINOIS HAS BEEN ADVISED 
+ *
+ * IN NO EVENT SHALL THE AUTHOR OR THE UNIVERSITY OF ILLINOIS BE LIABLE TO
+ * ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL
+ * DAMAGES ARISING OUT  OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION,
+ * EVEN IF THE AUTHOR AND/OR THE UNIVERSITY OF ILLINOIS HAS BEEN ADVISED
  * OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
- * THE AUTHOR AND THE UNIVERSITY OF ILLINOIS SPECIFICALLY DISCLAIM ANY 
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF 
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE 
+ *
+ * THE AUTHOR AND THE UNIVERSITY OF ILLINOIS SPECIFICALLY DISCLAIM ANY
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE
  * PROVIDED HEREUNDER IS ON AN "AS IS" BASIS, AND NEITHER THE AUTHOR NOR
- * THE UNIVERSITY OF ILLINOIS HAS ANY OBLIGATION TO PROVIDE MAINTENANCE, 
+ * THE UNIVERSITY OF ILLINOIS HAS ANY OBLIGATION TO PROVIDE MAINTENANCE,
  * SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS."
  *
  * Author:	    Steve Lumetta
@@ -53,22 +53,23 @@
 #include <termio.h>
 #include <termios.h>
 #include <unistd.h>
+#include <stdint.h>
 
 #include "assert.h"
 #include "input.h"
-
+#include "module/tuxctl-ioctl.h"
 /* set to 1 and compile this file by itself to test functionality */
-#define TEST_INPUT_DRIVER 0
+#define TEST_INPUT_DRIVER 1
 
 /* set to 1 to use tux controller; otherwise, uses keyboard input */
-#define USE_TUX_CONTROLLER 0
+#define USE_TUX_CONTROLLER 1
 
 
 /* stores original terminal settings */
 static struct termios tio_orig;
 
 
-/* 
+/*
  * init_input
  *   DESCRIPTION: Initializes the input controller.  As both keyboard and
  *                Tux controller control modes use the keyboard for the quit
@@ -76,7 +77,7 @@ static struct termios tio_orig;
  *                rather than the usual terminal mode.
  *   INPUTS: none
  *   OUTPUTS: none
- *   RETURN VALUE: 0 on success, -1 on failure 
+ *   RETURN VALUE: 0 on success, -1 on failure
  *   SIDE EFFECTS: changes terminal settings on stdin; prints an error
  *                 message on failure
  */
@@ -84,7 +85,13 @@ int
 init_input ()
 {
     struct termios tio_new;
-
+    int fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY);
+    int ldisc_num = N_MOUSE;
+    // int fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY);
+    // int ldisc_num = N_MOUSE;
+  // ioctl(fd, TUX_INIT, &ldisc_num);
+    ioctl(fd, TIOCSETD, &ldisc_num);
+    ioctl(fd, TUX_INIT);
     /*
      * Set non-blocking mode so that stdin can be read without blocking
      * when no new keystrokes are available.
@@ -156,7 +163,7 @@ typed_a_char (char c)
     }
 }
 
-/* 
+/*
  * get_command
  *   DESCRIPTION: Reads a command from the input controller.  As some
  *                controllers provide only absolute input (e.g., go
@@ -167,7 +174,7 @@ typed_a_char (char c)
  *   RETURN VALUE: command issued by the input controller
  *   SIDE EFFECTS: drains any keyboard input
  */
-cmd_t 
+cmd_t
 get_command ()
 {
 #if (USE_TUX_CONTROLLER == 0) /* use keyboard control with arrow keys */
@@ -176,14 +183,13 @@ get_command ()
     static cmd_t command = CMD_NONE;
     cmd_t pushed = CMD_NONE;
     int ch;
-
     /* Read all characters from stdin. */
     while ((ch = getc (stdin)) != EOF) {
 
 	/* Backquote is used to quit the game. */
 	if (ch == '`')
 	    return CMD_QUIT;
-	
+
 #if (USE_TUX_CONTROLLER == 0) /* use keyboard control with arrow keys */
 	/*
 	 * Arrow keys deliver the byte sequence 27, 91, and 'A' to 'D';
@@ -239,8 +245,8 @@ get_command ()
 		    state = 0;
 		    if (valid_typing (ch)) {
 			/*
-			 * Note that we may be discarding an ESC (27) and 
-			 * a bracket (91), but we don't use either as 
+			 * Note that we may be discarding an ESC (27) and
+			 * a bracket (91), but we don't use either as
 			 * typed input anyway.
 			 */
 			typed_a_char (ch);
@@ -267,9 +273,10 @@ get_command ()
 	} else if (10 == ch || 13 == ch) {
 	    pushed = CMD_TYPED;
 	}
+
+
 #endif /* USE_TUX_CONTROLLER */
     }
-
     /*
      * Once a direction is pushed, that command remains active
      * until a turn is taken.
@@ -280,13 +287,13 @@ get_command ()
     return pushed;
 }
 
-/* 
+/*
  * shutdown_input
  *   DESCRIPTION: Cleans up state associated with input control.  Restores
  *                original terminal settings.
  *   INPUTS: none
  *   OUTPUTS: none
- *   RETURN VALUE: none 
+ *   RETURN VALUE: none
  *   SIDE EFFECTS: restores original terminal settings
  */
 void
@@ -296,23 +303,46 @@ shutdown_input ()
 }
 
 
-/* 
+/*
  * display_time_on_tux
  *   DESCRIPTION: Show number of elapsed seconds as minutes:seconds
  *                on the Tux controller's 7-segment displays.
  *   INPUTS: num_seconds -- total seconds elapsed so far
  *   OUTPUTS: none
- *   RETURN VALUE: none 
+ *   RETURN VALUE: none
  *   SIDE EFFECTS: changes state of controller's display
  */
 void
 display_time_on_tux (int num_seconds)
 {
-#if (USE_TUX_CONTROLLER != 0)
-#error "Tux controller code is not operational yet."
-#endif
+// #if (USE_TUX_CONTROLLER != 0)
+// #error "Tux controller code is not operational yet."
+// #endif
+  uint8_t LEDon;
+  // tens place of seconds
+  uint8_t seconds1 = (num_seconds % 60) / 10;
+  // ones place of seconds
+  uint8_t seconds2 = (num_seconds % 60) % 10;
+  // tens place of minutes
+  uint8_t minutes1 = (num_seconds / 60) / 10;
+  // ones place of minutes
+  uint8_t minutes2 = (num_seconds / 60) % 10;
+  if(minutes1 == 0){
+    LEDon = 0x7;
+  }
+  else{
+    LEDon = 0xF;
+  }
+  uint8_t totalSeconds = (seconds1 << 4) | seconds2;
+  uint8_t totalMinutes = (minutes1 << 4) | minutes2;
+  unsigned long arg = (0x04 << 24) | (LEDon << 16) | (totalMinutes << 8) | totalSeconds;
+  int fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY);
+  int ldisc_num = N_MOUSE;
+  ioctl(fd, TIOCSETD, &ldisc_num);
+  ioctl(fd, TUX_SET_LED, arg);
 }
 
+// uint8_t convert_to_hex()
 
 #if (TEST_INPUT_DRIVER == 1)
 int
@@ -320,8 +350,9 @@ main ()
 {
     cmd_t last_cmd = CMD_NONE;
     cmd_t cmd;
+
     static const char* const cmd_name[NUM_COMMANDS] = {
-        "none", "right", "left", "up", "down", 
+        "none", "right", "left", "up", "down",
 	"move left", "enter", "move right", "typed command", "quit"
     };
 
@@ -330,11 +361,49 @@ main ()
 	perror ("ioperm");
 	return 3;
     }
+    int temp1 = 0;
+    int *temp = &temp1;
+
+
+    display_time_on_tux(661);
+    display_time_on_tux(351);
+    // ioctl(fd, TUX_SET_LED, 0x0B0FFEED);
+    // ioctl(fd, TUX_SET_LED, 0x0B0EFEED);
+
+    // display_time_on_tux(351);
 
     init_input ();
     while (1) {
-        while ((cmd = get_command ()) == last_cmd);
-	last_cmd = cmd;
+      while ((cmd = get_command ()) == last_cmd){
+      	last_cmd = cmd;
+        ioctl(fd, TUX_BUTTONS, temp);
+        switch(temp1){
+          case 0xBF:
+            printf("LEFT \n");
+            break;
+          case 0xEF:
+            printf("UP \n");
+            break;
+          case 0xDF:
+            printf("DOWN \n");
+            break;
+          case 0x7F:
+            printf("RIGHT \n");
+            break;
+          case 0xFE:
+            printf("START \n");
+            break;
+          case 0xFD:
+            printf("A \n");
+            break;
+          case 0xFB:
+            printf("B \n");
+            break;
+          case 0xF7:
+            printf("C \n");
+            break;
+          }
+        }
 	printf ("command issued: %s\n", cmd_name[cmd]);
 	if (cmd == CMD_QUIT)
 	    break;
@@ -344,4 +413,3 @@ main ()
     return 0;
 }
 #endif
-

@@ -1,4 +1,5 @@
 // All necessary declarations for the Tux Controller driver must be in this file
+#include <linux/tty.h>
 
 #ifndef TUXCTL_H
 #define TUXCTL_H
@@ -10,5 +11,6 @@
 #define TUX_LED_REQUEST _IO('E', 0x14)
 #define TUX_LED_ACK _IO('E', 0x15)
 
-#endif
 
+
+#endif
