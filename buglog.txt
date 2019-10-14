@@ -90,3 +90,7 @@ BUG 9: TUX can't print LEDs correctly, they never clear
 	If an LED's bitmask in MTCP_LED_SET is 0, that LED should be BLANKED OUT, NOT SKIPPED. 
 	Many people including me had the impression that if an LED's bitmask in MTCP_LED_SET is 0, that LED shouldkeep its previous state. 
 	This is incorrect, it should be completely blanked out.
+
+BUG 10: Segmentation fault when entering a room that needs an icard or bunnysuit
+
+	HOW LONG? 
