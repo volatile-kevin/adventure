@@ -81,11 +81,12 @@ static struct termios tio_orig;
  *   SIDE EFFECTS: changes terminal settings on stdin; prints an error
  *                 message on failure
  */
+ int fd;
 int
 init_input ()
 {
     struct termios tio_new;
-    int fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY);
+    fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY);
     int ldisc_num = N_MOUSE;
     // int fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY);
     // int ldisc_num = N_MOUSE;
@@ -365,17 +366,16 @@ main ()
     int *temp = &temp1;
 
 
-    display_time_on_tux(661);
-    display_time_on_tux(351);
-    // ioctl(fd, TUX_SET_LED, 0x0B0FFEED);
-    // ioctl(fd, TUX_SET_LED, 0x0B0EFEED);
-
+    // display_time_on_tux(661);
     // display_time_on_tux(351);
+    // ioctl(fd, TUX_SET_LED, 0x0B0FFEED);
+
 
     init_input ();
     while (1) {
       while ((cmd = get_command ()) == last_cmd){
       	last_cmd = cmd;
+        display_time_on_tux(351);
         ioctl(fd, TUX_BUTTONS, temp);
         switch(temp1){
           case 0xBF:
