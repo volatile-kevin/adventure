@@ -55,13 +55,10 @@
  * left and traversing the top row before returning to the left of
  * the second row, and so forth.  No padding should be used.
  */
-// struct photo_t {
-//     photo_header_t hdr;			/* defines height and width */
-//     uint8_t        palette[192][3];     /* optimized palette colors */
-//     uint8_t*       img;                 /* pixel data 2 bits              */
-//     uint8_t*       img2;                 /* pixel data 4 bits             */
-// };
-
+#define LFOURSIZE 4096
+#define LTWOSIZE 64
+#define LFOURFINALSIZE 128
+#define PALETTESIZE 192
 /*
  * An object image.  The code for managing these images has been given
  * to you.  The data are simply loaded from a file, where they have
@@ -449,9 +446,9 @@ read_photo (const char* fname)
     uint16_t x;		/* index over image columns */
     uint16_t y;		/* index over image rows    */
     uint16_t pixel;	/* one pixel from the file  */
-    int palette_idx[4096];
+    int palette_idx[LFOURSIZE];
     // fill this array with -1 to differentiate from actual data
-    memset(palette_idx, -1, 4096*sizeof(int));
+    memset(palette_idx, -1, LFOURSIZE*sizeof(int));
     /*
      * Open the file, allocate the structure, read the header, do some
      * sanity checks on it, and allocate space to hold the photo pixels.
@@ -482,10 +479,10 @@ read_photo (const char* fname)
      * in this order, whereas in memory we store the data in the reverse
      * order (top to bottom).
      */
-    colorDataL4 colorData4[4096];
-    colorDataL2 colorData2[64];
-    memset(colorData4, 0, 4096 * sizeof(colorData4[0]));
-    memset(colorData2, 0, 64 * sizeof(colorData2[0]));
+    colorDataL4 colorData4[LFOURSIZE];
+    colorDataL2 colorData2[LTWOSIZE];
+    memset(colorData4, 0, LFOURSIZE * sizeof(colorData4[0]));
+    memset(colorData2, 0, LTWOSIZE * sizeof(colorData2[0]));
     for (y = p->hdr.height; y-- > 0; ) {
 	/* Loop over columns from left to right. */
 	     for (x = 0; p->hdr.width > x; x++) {
@@ -512,7 +509,11 @@ read_photo (const char* fname)
 	     */
 
 
-      //get 4 MSB of each color in each pixel
+      // get 4 MSB of each color in each pixel by
+      // 1. right shift by 12 to isolate 4 MSB from R
+      // 2. right shift by 7 and AND with 1111 = 0xF to isolate 4 MSB from G
+      // 3. right shift by 1 and AND with 1111 = 0xF to isolate 4 MSB from B
+      // 4. right shift 1. by 8, 2. by 4 and OR them all together to get 4:4:4
       p->img[p->hdr.width * y + x] = (((pixel >> 12) << 8) |
 					    (((pixel >> 7) & 0xF) << 4) |
 					    ((pixel >> 1) & 0xF));
@@ -524,17 +525,22 @@ read_photo (const char* fname)
       // fill the struct array with RGB, index, and add to count
       colorData4[bitIndex4].frequency += 1;
       colorData4[bitIndex4].saveIndex = bitIndex4;
+      // right shift pixel by 11 to get 5 bits of R
+      // left shift it by 1 to make it a 6 bit number
       colorData4[bitIndex4].total_R4 += (pixel >> 11) << 1;
-      colorData4[bitIndex4].total_G4 += (pixel >> 5) & 63;
-      colorData4[bitIndex4].total_B4 += (pixel & 31) << 1;
+      // right shift pixel by 5 and AND with 111111 = 0x3F to isolate 6 bits of G
+      colorData4[bitIndex4].total_G4 += (pixel >> 5) & 0x3F;
+      // right shift pixel by 11 and AND with 11111 = 0x1F to get 5 bits of B
+      // left shift it by 1 to make it a 6 bit number
+      colorData4[bitIndex4].total_B4 += (pixel & 0x1F) << 1;
 	    }
     }
     // sort by most populous, descending order
-    qsort(colorData4, 4096, sizeof(colorData4[0]), cmpfunc);
+    qsort(colorData4, LFOURSIZE, sizeof(colorData4[0]), cmpfunc);
     // get the average of each bit string, only for most populated 128
     int i;
     int j;
-  for(i = 0; i < 128; i++){
+  for(i = 0; i < LFOURFINALSIZE; i++){
     if(colorData4[i].frequency != 0){
       colorData4[i].avg_R4 = (colorData4[i].total_R4) / colorData4[i].frequency;
       colorData4[i].avg_G4 = colorData4[i].total_G4 / colorData4[i].frequency;
@@ -542,7 +548,12 @@ read_photo (const char* fname)
     }
   }
 // fill level 2 tree with level 4 nodes that are not in the most populous 128
-for(i = 128; i < 4096; i++){
+for(i = LFOURFINALSIZE; i < LFOURSIZE; i++){
+  // CONVERT L4 to L2 Index by:
+  // 1. right shift L4 idx by 10 and AND with 11 = 3 to isolate 2 MSB of R
+  // 2. right shift L4 idx by 6 and AND with 11 = 3 to isolate 2 MSB of G
+  // 3. right shift L4 idx by 2 and AND with 11 = 3 to isolate 2 MSB of R
+  // 4. left shift 1. by 4 and 2. by 2, OR them all together to get L2 index
   int idxL2 = ((((colorData4[i].saveIndex >> 10) & 3) << 4) | (((colorData4[i].saveIndex >> 6) & 3) << 2) | ((colorData4[i].saveIndex >> 2) & 3));
   colorData2[idxL2].frequency += colorData4[i].frequency;
   colorData2[idxL2].total_R2 += colorData4[i].total_R4;
@@ -550,7 +561,7 @@ for(i = 128; i < 4096; i++){
   colorData2[idxL2].total_B2 += colorData4[i].total_B4;
 }
 // calculate averages for level 2
-for(i = 0; i < 64; i++){
+for(i = 0; i < LTWOSIZE; i++){
       if(colorData2[i].frequency != 0){
         colorData2[i].avg_R2 = (colorData2[i].total_R2) / colorData2[i].frequency;
         colorData2[i].avg_G2 = colorData2[i].total_G2 / colorData2[i].frequency;
@@ -558,9 +569,9 @@ for(i = 0; i < 64; i++){
       }
     }
 // put level 4 and level 2 nodes in the palette to get sent to VGA
-  for(i = 0; i < 192; i++){
+  for(i = 0; i < PALETTESIZE; i++){
     for(j = 0; j < 3; j++){
-      if(i < 128){
+      if(i < LFOURFINALSIZE){
         // array that keeps track of index so we don't have to loop again in the next iteration through pixels
         palette_idx[colorData4[i].saveIndex] = i;
         switch(j){
@@ -578,13 +589,13 @@ for(i = 0; i < 64; i++){
       else{
         switch(j){
           case 0:
-            p->palette[i][j] = colorData2[i-128].avg_R2;
+            p->palette[i][j] = colorData2[i-LFOURFINALSIZE].avg_R2;
             break;
           case 1:
-            p->palette[i][j] = colorData2[i-128].avg_G2;
+            p->palette[i][j] = colorData2[i-LFOURFINALSIZE].avg_G2;
             break;
           case 2:
-            p->palette[i][j] = colorData2[i-128].avg_B2;
+            p->palette[i][j] = colorData2[i-LFOURFINALSIZE].avg_B2;
             break;
       }
     }
@@ -606,27 +617,34 @@ for(i = 0; i < 64; i++){
       (void)fclose (in);
       return NULL;
     }
-
-    // get 2 MSB of each color in each pixel
+    // get 2 MSB of each color in each pixel by
+    // 1. right shift by 14 to isolate 4 MSB from R
+    // 2. right shift by 9 and AND with 11 to isolate 4 MSB from G
+    // 3. right shift by 1 and AND with 11 to isolate 4 MSB from B
+    // 4. right shift 1. by 4, 2. by 2 and OR them all together to get 4:4:4
     int bitIndex2_ = (((pixel >> 14) << 4) |
             (((pixel >> 9) & 0x3) << 2) |
             ((pixel >> 3) & 0x3));
 
-    // get 4 MSB of each color in each pixel
+    // get 4 MSB of each color in each pixel by
+    // 1. right shift by 12 to isolate 4 MSB from R
+    // 2. right shift by 7 and AND with 1111 to isolate 4 MSB from G
+    // 3. right shift by 1 and AND with 1111 to isolate 4 MSB from B
+    // 4. right shift 1. by 8, 2. by 4 and OR them all together to get 2:2:@
     int bitIndex4_ = (((pixel >> 12) << 8) |
             (((pixel >> 7) & 0xF) << 4) |
             ((pixel >> 1) & 0xF));
     // remap the indecies to the pixels in each image
     int flag = 0;
     if(palette_idx[bitIndex4_] != -1){
-      p->img[p->hdr.width * y + x] = palette_idx[bitIndex4_] + 64;
+      p->img[p->hdr.width * y + x] = palette_idx[bitIndex4_] + LTWOSIZE;
     }
     else{
       flag = 1;
     }
 
     if(flag == 1){
-      p->img[p->hdr.width * y + x] = bitIndex2_ + 192;
+      p->img[p->hdr.width * y + x] = bitIndex2_ + PALETTESIZE;
     }
   }
 }
