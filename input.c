@@ -59,7 +59,7 @@
 #include "input.h"
 #include "module/tuxctl-ioctl.h"
 /* set to 1 and compile this file by itself to test functionality */
-#define TEST_INPUT_DRIVER 1
+#define TEST_INPUT_DRIVER 0
 
 /* set to 1 to use tux controller; otherwise, uses keyboard input */
 #define USE_TUX_CONTROLLER 1
@@ -82,7 +82,16 @@ static struct termios tio_orig;
  *                 message on failure
  */
  int fd;
-int
+ int update_buttons(){
+   int temp1 = 0;
+   int *temp = &temp1;
+   ioctl(fd, TUX_BUTTONS, temp);
+
+   return temp1;
+ }
+
+
+
 init_input ()
 {
     struct termios tio_new;
@@ -337,9 +346,6 @@ display_time_on_tux (int num_seconds)
   uint8_t totalSeconds = (seconds1 << 4) | seconds2;
   uint8_t totalMinutes = (minutes1 << 4) | minutes2;
   unsigned long arg = (0x04 << 24) | (LEDon << 16) | (totalMinutes << 8) | totalSeconds;
-  int fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY);
-  int ldisc_num = N_MOUSE;
-  ioctl(fd, TIOCSETD, &ldisc_num);
   ioctl(fd, TUX_SET_LED, arg);
 }
 

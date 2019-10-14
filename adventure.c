@@ -49,6 +49,7 @@
 #include "photo.h"
 #include "text.h"
 #include "world.h"
+#include "module/tuxctl-ioctl.h"
 
 
 /*
@@ -178,7 +179,7 @@ static pthread_t status_thread_id;
 static pthread_mutex_t msg_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t  msg_cv = PTHREAD_COND_INITIALIZER;
 static char status_msg[STATUS_MSG_LEN + 1] = {'\0'};
-
+static int clock_me = 0;
 
 /*
  * cancel_status_thread
@@ -218,6 +219,8 @@ game_loop ()
     cmd_t cmd;               /* command issued by input control */
     int32_t enter_room;      /* player has changed rooms        */
     unsigned char * currentType;
+
+    init_input();
 
     //MODIFIED
 
@@ -339,7 +342,40 @@ game_loop ()
 		exit (3);
 	    }
 	} while (!time_is_after (&cur_time, &tick_time));
+  if((tick_time.tv_usec - start_time.tv_usec) == 0){
+    clock_me++;
+    display_time_on_tux(clock_me);
+  }
 
+  int buttonData = update_buttons();
+  switch(buttonData){
+    case 0xBF:
+      move_photo_right ();
+      break;
+    case 0xEF:
+      move_photo_down ();
+      break;
+    case 0xDF:
+      move_photo_up ();
+      break;
+    case 0x7F:
+      move_photo_left ();
+      break;
+    case 0xFE:
+      printf("START \n");
+      break;
+    case 0xFD:
+    enter_room = (TC_CHANGE_ROOM ==
+            try_to_move_left (&game_info.where));
+      break;
+    case 0xFB:
+    enter_room = (TC_CHANGE_ROOM ==
+			      try_to_enter (&game_info.where));
+    case 0xF7:
+    enter_room = (TC_CHANGE_ROOM ==
+            try_to_move_right (&game_info.where));
+      break;
+    }
 	/*
 	 * Advance the tick time.  If we missed one or more ticks completely,
 	 * i.e., if the current time is already after the time for the next
@@ -359,7 +395,6 @@ game_loop ()
 	 * off to the nearest tick by definition.
 	 */
 	/* (none right now...) */
-
 	/*
 	 * Handle synchronous events--in this case, only player commands.
 	 * Note that typed commands that move objects may cause the room

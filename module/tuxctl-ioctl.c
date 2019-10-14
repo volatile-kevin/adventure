@@ -76,7 +76,7 @@
 	int tux_set_led(struct tty_struct* tty, unsigned long arg){
 		char whichLED = (arg >> 16) & 0xF;
 		char whichDec = (arg >> 24) & 0xF;
-		printk("%x \n", whichLED);
+		// printk("%x \n", whichLED);
 		char buffer[6];
 		int LEDval[4];
 		char LEDvalDEC[4];
@@ -85,7 +85,7 @@
 		LEDval[1] = (arg >> 4) & 0xF;
 		LEDval[2] = (arg >> 8) & 0xF;
 		LEDval[3] = (arg >> 12) & 0xF;
-		printk("0, 1, 2, 3: %d, %d, %d, %d \n", LEDval[0], LEDval[1], LEDval[2], LEDval[3]);
+		// printk("0, 1, 2, 3: %d, %d, %d, %d \n", LEDval[0], LEDval[1], LEDval[2], LEDval[3]);
 		for(i = 0; i < 4; i++){
 			if(whichDec & (1 << i)){
 				LEDvalDEC[i] = segments[LEDval[i]] | 0x10;
@@ -107,10 +107,10 @@
 		buffer[3] = LEDvalDEC[1];
 		buffer[4] = LEDvalDEC[2];
 		buffer[5] = LEDvalDEC[3];
-		printk("bitstring: %x \n", LEDvalDEC[0]);
-		printk("bitstring: %x \n", LEDvalDEC[1]);
-		printk("bitstring: %x \n", LEDvalDEC[2]);
-		printk("bitstring: %x \n", LEDvalDEC[3]);
+		// printk("bitstring: %x \n", LEDvalDEC[0]);
+		// printk("bitstring: %x \n", LEDvalDEC[1]);
+		// printk("bitstring: %x \n", LEDvalDEC[2]);
+		// printk("bitstring: %x \n", LEDvalDEC[3]);
 
 		LEDbuffer[0] = MTCP_LED_SET;
 		LEDbuffer[1] = whichLED;
@@ -154,7 +154,7 @@ void tuxctl_handle_packet (struct tty_struct* tty, unsigned char* packet)
 			// printk("buttons string: %x, %x, %x \n", stateCurr.buttons, temp1);
 		}
 		if(a == MTCP_ACK){
-			printk("you ain't ever gonna finish this goddamn MP, dumbass \n");
+			// printk("you ain't ever gonna finish this goddamn MP, dumbass \n");
 		}
     // printk("packet : %x %x %x\n", a, b, c);
 }
