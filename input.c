@@ -92,7 +92,7 @@ static struct termios tio_orig;
 
 
 
-init_input ()
+int init_input ()
 {
     struct termios tio_new;
     fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY);
@@ -349,7 +349,6 @@ display_time_on_tux (int num_seconds)
   ioctl(fd, TUX_SET_LED, arg);
 }
 
-// uint8_t convert_to_hex()
 
 #if (TEST_INPUT_DRIVER == 1)
 int
