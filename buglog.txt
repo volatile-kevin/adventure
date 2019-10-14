@@ -80,3 +80,13 @@ BUG 8: octree algorithm just colors with black or random garbage values
 	HOW LONG? 3 days
 
 	FIX: uint8_t was the type of p->img. I made a copy of this to save the 4:4:4 rgb, hence only taking in the G and B values.
+
+BUG 9: TUX can't print LEDs correctly, they never clear
+
+	HOW LONG? 5 hours
+
+	FIX: from piazza: " have seen a lot of people who got the opposite impression from the documentation, so I want to make this absolutely clear.
+
+	If an LED's bitmask in MTCP_LED_SET is 0, that LED should be BLANKED OUT, NOT SKIPPED. 
+	Many people including me had the impression that if an LED's bitmask in MTCP_LED_SET is 0, that LED shouldkeep its previous state. 
+	This is incorrect, it should be completely blanked out.

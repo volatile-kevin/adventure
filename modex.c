@@ -549,6 +549,7 @@ show_screen ()
 void
 show_statusBar (unsigned char * string, int msg_or_room)
 {
+    // return;
     unsigned char* addr;  /* source address for copy             */
     int i;		  /* loop index over video planes        */
 
@@ -560,7 +561,10 @@ show_statusBar (unsigned char * string, int msg_or_room)
     for (i = 0; i < 4; i++) {
 	SET_WRITE_MASK (1 << (i + 8));
 	copy_statusBar (addr + ((3 - i + 4) & 3) * STATUSBAR_SIZE + (3 < i));
+  // copy_statusBar (addr + ((3 - i + 4) & 3) * STATUSBAR_SIZE );
     }
+    OUTW (0x03D4, (target_img & 0xFF00) | 0x0C);
+    OUTW (0x03D4, ((target_img & 0x00FF) << 8) | 0x0D);
 }
 /*
  * clear_screens

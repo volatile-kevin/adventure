@@ -51,7 +51,9 @@ typedef enum {
 
 /* Initialize the input device. */
 extern int init_input ();
-extern void update();
+// update the buttons
+extern int update_buttons();
+
 /* Read a command from the input device. */
 extern cmd_t get_command ();
 

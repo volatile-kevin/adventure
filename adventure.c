@@ -71,8 +71,15 @@ static int sanity_check (void);
 #define STRING_ARR_SIZE 41   // size of string array
 #define MAX_TYPE 20          // amount of chars user can type
 #define UNDERSCORE_ARR_SIZE 2  // underscore array with a null char
-
-
+#define NOBUTTONPRESS 255
+#define LEFT 0xBF
+#define UP 0xEF
+#define DOWN 0xDF
+#define RIGHT 0x7F
+#define START 0xFE
+#define BUTTONA 0xFD
+#define BUTTONB 0xFB
+#define BUTTONC 0xF7
 
 /* outcome of the game */
 typedef enum {GAME_WON, GAME_QUIT} game_condition_t;
@@ -159,6 +166,7 @@ static int time_is_after (struct timeval* t1, struct timeval* t2);
 
 
 static game_info_t game_info; /* game information */
+static int32_t enter_room;      /* player has changed rooms        */
 
 
 /*
@@ -176,10 +184,15 @@ static game_info_t game_info; /* game information */
  * condition variable msg_cv (while holding the msg_lock).
  */
 static pthread_t status_thread_id;
+static pthread_t tux_thread_id;
 static pthread_mutex_t msg_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t  msg_cv = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t tux_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t  tux_cv = PTHREAD_COND_INITIALIZER;
 static char status_msg[STATUS_MSG_LEN + 1] = {'\0'};
+// variable that increments as time increases
 static int clock_me = 0;
+static int buttonData;
 
 /*
  * cancel_status_thread
@@ -212,12 +225,11 @@ game_loop ()
      * Variables used to carry information between event loop ticks; see
      * initialization below for explanations of purpose.
      */
-
+    enter_room = 0;
     struct timeval start_time, tick_time;
 
     struct timeval cur_time; /* current time (during tick)      */
     cmd_t cmd;               /* command issued by input control */
-    int32_t enter_room;      /* player has changed rooms        */
     unsigned char * currentType;
 
     init_input();
@@ -346,36 +358,20 @@ game_loop ()
     clock_me++;
     display_time_on_tux(clock_me);
   }
+/********************************************************************************/
 
-  int buttonData = update_buttons();
-  switch(buttonData){
-    case 0xBF:
-      move_photo_right ();
-      break;
-    case 0xEF:
-      move_photo_down ();
-      break;
-    case 0xDF:
-      move_photo_up ();
-      break;
-    case 0x7F:
-      move_photo_left ();
-      break;
-    case 0xFE:
-      printf("START \n");
-      break;
-    case 0xFD:
-    enter_room = (TC_CHANGE_ROOM ==
-            try_to_move_left (&game_info.where));
-      break;
-    case 0xFB:
-    enter_room = (TC_CHANGE_ROOM ==
-			      try_to_enter (&game_info.where));
-    case 0xF7:
-    enter_room = (TC_CHANGE_ROOM ==
-            try_to_move_right (&game_info.where));
-      break;
-    }
+  // poll button presses by calling update buttons which sends TUX_BUTTONS ioctl
+  buttonData = update_buttons();
+
+  pthread_mutex_lock(&tux_lock);
+  if (buttonData != NOBUTTONPRESS){
+    pthread_cond_signal(&tux_cv);
+  }
+  pthread_mutex_unlock(&tux_lock);
+
+
+/********************************************************************************/
+
 	/*
 	 * Advance the tick time.  If we missed one or more ticks completely,
 	 * i.e., if the current time is already after the time for the next
@@ -722,8 +718,58 @@ redraw_room ()
 	(void)draw_horiz_line (i);
     }
 }
-
-
+// TUX thread
+// activates when buttonData is not default, i.e. when a button is pressed
+// then the current button data is parsed to activate the corresponding command
+// inputs: none
+// outputs: none
+// side effects: resets button data back to 255/default
+static void* tux_thread(void * arg){
+  while(1){
+    // printf("HELLOasdfasdf \n");
+    (void)pthread_mutex_lock(&tux_lock);
+    //while button not pressed, wait
+    while(buttonData == NOBUTTONPRESS){
+      pthread_cond_wait(&tux_cv, &tux_lock);
+    }
+    // printf("%d \n", buttonData);
+    switch(buttonData){
+      case LEFT:
+        move_photo_right ();
+        break;
+      case UP:
+        move_photo_down ();
+        break;
+      case DOWN:
+        move_photo_up ();
+        break;
+      case RIGHT:
+        move_photo_left ();
+        break;
+      case START:
+        // printf("START \n");
+        break;
+      case BUTTONA:
+      enter_room = (TC_CHANGE_ROOM ==
+              try_to_move_left (&game_info.where));
+        break;
+      case BUTTONB:
+      enter_room = (TC_CHANGE_ROOM ==
+  			      try_to_enter (&game_info.where));
+  		  break;
+      case BUTTONC:
+      enter_room = (TC_CHANGE_ROOM ==
+              try_to_move_right (&game_info.where));
+        break;
+      default:
+        break;
+      }
+      // reset the button data
+      buttonData = NOBUTTONPRESS;
+    (void)pthread_mutex_unlock(&tux_lock);
+  }
+  return NULL;
+}
 /*
  * status_thread
  *   DESCRIPTION: Function executed by status message helper thread.
@@ -870,7 +916,11 @@ main ()
     if (0 != sanity_check ()) {
 	PANIC ("failed sanity checks");
     }
-
+    // modified
+    if (0 != pthread_create (&tux_thread_id, NULL, tux_thread, NULL)) {
+        PANIC ("failed to create tux thread");
+    }
+    //
     /* Create status message thread. */
     if (0 != pthread_create (&status_thread_id, NULL, status_thread, NULL)) {
         PANIC ("failed to create status thread");

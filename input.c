@@ -63,8 +63,19 @@
 
 /* set to 1 to use tux controller; otherwise, uses keyboard input */
 #define USE_TUX_CONTROLLER 1
-
-
+#define SECONDSPERMIN 60
+#define GETONES 10
+#define ALLLEDON 0xF
+#define FIRSTLEDOFF 0x7
+#define MIDDLEDEC 0x04
+#define LEFT 0xBF
+#define UP 0xEF
+#define DOWN 0xDF
+#define RIGHT 0x7F
+#define START 0xFE
+#define BUTTONA 0xFD
+#define BUTTONB 0xFB
+#define BUTTONC 0xF7
 /* stores original terminal settings */
 static struct termios tio_orig;
 
@@ -83,9 +94,8 @@ static struct termios tio_orig;
  */
  int fd;
  int update_buttons(){
-   int temp1 = 0;
-   int *temp = &temp1;
-   ioctl(fd, TUX_BUTTONS, temp);
+   int temp1;
+   ioctl(fd, TUX_BUTTONS, &temp1);
 
    return temp1;
  }
@@ -330,23 +340,29 @@ display_time_on_tux (int num_seconds)
 // #endif
   uint8_t LEDon;
   // tens place of seconds
-  uint8_t seconds1 = (num_seconds % 60) / 10;
+  uint8_t seconds1 = (num_seconds % SECONDSPERMIN) / GETONES;
   // ones place of seconds
-  uint8_t seconds2 = (num_seconds % 60) % 10;
+  uint8_t seconds2 = (num_seconds % SECONDSPERMIN) % GETONES;
   // tens place of minutes
-  uint8_t minutes1 = (num_seconds / 60) / 10;
+  uint8_t minutes1 = (num_seconds / SECONDSPERMIN) / GETONES;
   // ones place of minutes
-  uint8_t minutes2 = (num_seconds / 60) % 10;
+  uint8_t minutes2 = (num_seconds / SECONDSPERMIN) % GETONES;
   if(minutes1 == 0){
-    LEDon = 0x7;
+    LEDon = FIRSTLEDOFF;
   }
   else{
-    LEDon = 0xF;
+    LEDon = ALLLEDON;
   }
+  // right shift by 4 in order to move the seconds tens place in front
   uint8_t totalSeconds = (seconds1 << 4) | seconds2;
   uint8_t totalMinutes = (minutes1 << 4) | minutes2;
-  unsigned long arg = (0x04 << 24) | (LEDon << 16) | (totalMinutes << 8) | totalSeconds;
+  // right shift decimal to 4 LSB of 1st byte
+  // right shift LEDon to 4 LSB of 2nd byte
+  // right shift totalMinutes to 4 LSB of 3rd byte
+  // OR these together to get complete arg
+  unsigned long arg = (MIDDLEDEC << 24) | (LEDon << 16) | (totalMinutes << 8) | totalSeconds;
   ioctl(fd, TUX_SET_LED, arg);
+  return;
 }
 
 
@@ -380,31 +396,32 @@ main ()
     while (1) {
       while ((cmd = get_command ()) == last_cmd){
       	last_cmd = cmd;
+        // try displaying 5 minutes 51 seconds -> 5:51
         display_time_on_tux(351);
         ioctl(fd, TUX_BUTTONS, temp);
         switch(temp1){
-          case 0xBF:
+          case LEFT:
             printf("LEFT \n");
             break;
-          case 0xEF:
+          case UP:
             printf("UP \n");
             break;
-          case 0xDF:
+          case DOWN:
             printf("DOWN \n");
             break;
-          case 0x7F:
+          case RIGHT:
             printf("RIGHT \n");
             break;
-          case 0xFE:
+          case START:
             printf("START \n");
             break;
-          case 0xFD:
+          case BUTTONA:
             printf("A \n");
             break;
-          case 0xFB:
+          case BUTTONB:
             printf("B \n");
             break;
-          case 0xF7:
+          case BUTTONC:
             printf("C \n");
             break;
           }

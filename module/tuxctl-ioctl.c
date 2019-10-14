@@ -97,11 +97,12 @@
 		// int temp = arg & 0xFFFFFF00;
 		// int state = stateCurr.buttons & 0xFF;
 		// int *ptr = temp | state;
-			if(arg == NULL){
+		int state;
+			if(!arg){
 				return -EINVAL;
 			}
-			int state = buttons;
-			copy_to_user(arg, &state, 1);
+			state = buttons;
+			copy_to_user((unsigned long *)arg, &state, 1);
 		return 0;
 	}
 	/*
